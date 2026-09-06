@@ -62,9 +62,10 @@ for spec in "${specs[@]}"; do
  if [ "$live_file" = 'mk/document.html' ]; then continue; fi
  healthy=false
  for attempt in 1 2 3 4 5; do
-  if curl -fsS --max-time 15 "http://127.0.0.1:$port/" -o "$stage_dir/served.html" && grep -q 'id="astra-theme"' "$stage_dir/served.html"; then healthy=true; break; fi
+  if curl -fsSL --max-redirs 5 --max-time 15 "http://127.0.0.1:$port/" -o "$stage_dir/served.html" && grep -q 'id="astra-theme"' "$stage_dir/served.html"; then healthy=true; break; fi
   sleep 1
  done
+ if [ "$healthy" != true ]; then echo "Page check failed: $process at http://127.0.0.1:$port/" >&2; fi
  test "$healthy" = true
  echo "OK: $process / $port"
 done
