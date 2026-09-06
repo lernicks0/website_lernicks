@@ -397,8 +397,8 @@ const server = http.createServer((req, res) => {
     && /^\/d\/[a-f0-9]{16}\/?$/.test(url.pathname);
   securityHeaders(res, isPublicDocumentView);
 
-  if ((req.method === 'GET' || req.method === 'HEAD') && url.pathname === '/html-support.js') {
-    const body = fs.readFileSync(path.join(ROOT_DIR, 'html-support.js'));
+  if ((req.method === 'GET' || req.method === 'HEAD') && ['/html-support.js', '/purify.min.js'].includes(url.pathname)) {
+    const body = fs.readFileSync(path.join(ROOT_DIR, url.pathname.slice(1)));
     res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Content-Length': body.length, 'Cache-Control': 'no-cache' });
     res.end(req.method === 'HEAD' ? undefined : body);
     return;

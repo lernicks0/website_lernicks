@@ -2,13 +2,28 @@
   'use strict';
 
   function detectFormat(content) {
-    const start = String(content || '').replace(/^\s*(?:<!--[\s\S]*?-->\s*)*/, '');
-    // Only inspect the beginning: fenced examples and HTML mentioned in prose stay Markdown.
-    return /^(?:<!doctype\s+html\b|<[a-z][a-z0-9-]*(?=[\s/>]))/i.test(start) ? 'html' : 'mixed';
+    // HTML fragments are part of Markdown, even when they appear first.
+    return 'mixed';
   }
 
   function resolveFormat(format, content) {
     return ['html', 'mixed', 'markdown', 'latex'].includes(format) ? format : detectFormat(content);
+  }
+
+  function insertMarkdownHtml(target, rendered) {
+    if (!root.DOMPurify || !root.DOMPurify.isSupported) return false;
+    const clean = root.DOMPurify.sanitize(rendered, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ['style', 'form', 'input', 'textarea', 'select', 'button', 'link', 'meta', 'base'],
+      SANITIZE_NAMED_PROPS: true,
+      RETURN_DOM_FRAGMENT: true
+    });
+    for (const link of clean.querySelectorAll('a[href]')) {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+    }
+    target.replaceChildren(clean);
+    return true;
   }
 
   function renderHtml(target, content) {
@@ -25,7 +40,7 @@
     target.replaceChildren(frame);
   }
 
-  const api = { detectFormat, resolveFormat, renderHtml };
+  const api = { detectFormat, resolveFormat, renderHtml, insertMarkdownHtml };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MkHtml = api;
 })(typeof window === 'object' ? window : globalThis);
