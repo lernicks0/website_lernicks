@@ -22,6 +22,11 @@ for (const [site, relative] of pages) {
   html = html.replace(/\sdata-astra-site="[^"]*"/g, '').replace('<html lang="zh-CN"', `<html lang="zh-CN" data-astra-site="${site}"`);
   html = html.replace(/<!-- ASTRA HEAD START -->[\s\S]*?<!-- ASTRA HEAD END -->\s*/g, '');
   html = html.replace('</head>', `<!-- ASTRA HEAD START -->\n<style id="astra-style">\n${css}\n</style>\n<script id="astra-theme">\n${js}\n</script>\n<!-- ASTRA HEAD END -->\n</head>`);
+  const widthFile = path.join(__dirname, 'document-width.css');
+  if (site === 'document' && fs.existsSync(widthFile)) {
+    html = html.replace(/<style id="astra-document-width">[\s\S]*?<\/style>\s*/g, '');
+    html = html.replace('</head>', `<style id="astra-document-width">\n${fs.readFileSync(widthFile, 'utf8')}\n</style>\n</head>`);
+  }
   if (site === 'main' && !html.includes('id="astra-main-title"')) {
     html = html.replace(/(<section class="hero">[\s\S]*?)(<h2>[\s\S]*?<\/h2>)/, '$1<div class="legacy-only">$2</div><h2 id="astra-main-title" class="astra-only">随手记下，<br>轻松分享。</h2>');
     const samples = {
