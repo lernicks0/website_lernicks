@@ -1,0 +1,11 @@
+/* 三个班级工具保持同等层级和尺寸。 */
+html.astra[data-astra-site="cla"] .sites{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
+html.astra[data-astra-site="cla"] :is(.card,.card.pk){grid-row:auto;display:flex;flex-direction:column;justify-content:flex-start;min-height:270px;padding:26px;background:var(--a-paper);color:var(--text);border:1px solid var(--line);--accent:var(--a-accent)}
+html.astra[data-astra-site="cla"] .card.pk:after{display:none}
+html.astra[data-astra-site="cla"] .sites .card h3{font-size:25px;margin:15px 0 8px;font-weight:600}
+html.astra[data-astra-site="cla"] .sites .card p{flex:1;color:var(--muted);max-width:none;padding-bottom:0}
+html.astra[data-astra-site="cla"] .sites .enter{position:static;align-self:flex-end;margin-top:24px;font-size:13px}
+@media(max-width:760px){
+ html.astra[data-astra-site="cla"] .sites{grid-template-columns:1fr}
+ html.astra[data-astra-site="cla"] :is(.card,.card.pk){min-height:235px;padding:24px}
+}
