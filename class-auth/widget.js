@@ -44,7 +44,17 @@
       '.ca-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:17px}.ca-button{border:1px solid rgba(92,228,255,.25);border-radius:11px;padding:10px 14px;color:#eefaff;background:#102a43;cursor:pointer;font:700 13px "Microsoft YaHei",sans-serif}.ca-button.primary{border:0;color:#06151e;background:linear-gradient(135deg,#5ce4ff,#70efb7)}.ca-button.warn{color:#ffd06e;border-color:rgba(255,208,110,.35)}.ca-button.danger{color:#ff8197;border-color:rgba(255,129,151,.35)}',
       '.ca-error{min-height:20px;margin-top:9px;color:#ff8197;font-size:13px}.ca-user{padding:14px;border:1px solid rgba(92,228,255,.2);border-radius:13px;background:rgba(7,24,39,.7)}.ca-user strong{font-size:20px}.ca-role{display:inline-block;margin-left:8px;padding:4px 8px;border-radius:99px;color:#70efb7;background:rgba(112,239,183,.09);font-size:11px}',
       '.ca-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.ca-note{padding:12px;border-radius:11px;color:#ffd06e!important;background:rgba(255,208,110,.08)}.ca-account-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:12px}.ca-status{font-size:12px;color:#9bb2c3}.ca-status.on{color:#70efb7}',
-      '@media(max-width:480px){.ca-actions,.ca-tabs,.ca-account-row{grid-template-columns:1fr;flex-direction:column}.ca-button{width:100%}}'
+      '@media(max-width:480px){.ca-actions,.ca-tabs,.ca-account-row{grid-template-columns:1fr;flex-direction:column}.ca-button{width:100%}}',
+      '#classAccountRoot{color-scheme:dark;--ca-paper:#102a43;--ca-field:#071827;--ca-text:#eefaff;--ca-muted:#a9bdcc;--ca-line:#466078;--ca-accent:#5ce4ff;--ca-on-accent:#06151e;--ca-success:#70efb7;--ca-danger:#ff8197;--ca-warn:#ffd06e;--ca-note:#28303b;--ca-role:#143e3e;--ca-overlay:#02080fd9}',
+      '#classAccountRoot[data-theme="light"]{color-scheme:light;--ca-paper:#fff;--ca-field:#f4f6f8;--ca-text:#1a2331;--ca-muted:#596674;--ca-line:#b8c4ce;--ca-accent:#245de2;--ca-on-accent:#fff;--ca-success:#217350;--ca-danger:#b73849;--ca-warn:#855012;--ca-note:#fff4dc;--ca-role:#e8f4ed;--ca-overlay:#17233770}',
+      '#classAccountRoot,#classAccountRoot *{box-sizing:border-box}#classAccountRoot .ca-overlay{background:var(--ca-overlay)}',
+      '#classAccountRoot .ca-card{background:var(--ca-paper);color:var(--ca-text);border-color:var(--ca-line)}#classAccountRoot .ca-card h2{color:var(--ca-text)}#classAccountRoot .ca-card p{color:var(--ca-muted)}',
+      '#classAccountRoot .ca-field,#classAccountRoot .ca-field option{color:var(--ca-text);background:var(--ca-field);border-color:var(--ca-line);color-scheme:inherit}#classAccountRoot .ca-field{min-width:0;max-width:100%}#classAccountRoot .ca-field::placeholder{color:var(--ca-muted);opacity:1}',
+      '#classAccountRoot .ca-field:focus,#classAccountRoot :focus-visible{outline:2px solid var(--ca-accent);outline-offset:2px;border-color:var(--ca-accent);box-shadow:none}',
+      '#classAccountRoot .ca-button,#classAccountRoot .ca-close{background:var(--ca-field);color:var(--ca-text);border-color:var(--ca-line)}#classAccountRoot .ca-button.primary{background:var(--ca-accent);color:var(--ca-on-accent)}',
+      '#classAccountRoot .ca-button.warn{color:var(--ca-warn)}#classAccountRoot .ca-button.danger,#classAccountRoot .ca-error{color:var(--ca-danger)}#classAccountRoot .ca-error.ca-success{color:var(--ca-success)}',
+      '#classAccountRoot .ca-user{background:var(--ca-field);border-color:var(--ca-line);overflow-wrap:anywhere}#classAccountRoot .ca-role{color:var(--ca-success);background:var(--ca-role)}',
+      '#classAccountRoot .ca-card .ca-note{color:var(--ca-warn)!important;background:var(--ca-note)}#classAccountRoot .ca-status{color:var(--ca-muted)}#classAccountRoot .ca-card .ca-status.on{color:var(--ca-success)}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -55,6 +65,11 @@
       root = document.createElement('div');
       root.id = 'classAccountRoot';
       document.body.appendChild(root);
+      var syncTheme = function () {
+        root.dataset.theme = getComputedStyle(document.documentElement).colorScheme === 'light' ? 'light' : 'dark';
+      };
+      syncTheme();
+      new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-design'] });
     }
     button = document.querySelector('[data-class-account]');
     if (!button) {
@@ -147,11 +162,11 @@
         var status = root.querySelector('#caManageStatus');
         try {
           await api('/accounts/password', { method: 'POST', body: { id: id, password: password } });
-          status.style.color = '#70efb7';
+          status.classList.add('ca-success');
           status.textContent = '已为 '+id+' 设置新密码，旧登录已退出。';
           root.querySelector('#caManagePassword').value = '';
           if (id === account.id) { account = null; setTimeout(function () { close(); emit(); }, 900); }
-        } catch (problem) { status.style.color = '#ff8197'; status.textContent = problem.message; }
+        } catch (problem) { status.classList.remove('ca-success'); status.textContent = problem.message; }
       };
     } catch (problem) {
       root.querySelector('#caManageLoading').textContent = problem.message;
