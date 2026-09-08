@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { TEACHERS } = require('./teachers');
 
 const ROSTER_FILE = process.env.CLASS_ROSTER_FILE || path.join(__dirname, 'roster.json');
 const VALID_ROLES = new Set(['student', 'student-admin', 'teacher']);
@@ -49,8 +50,9 @@ function readRoster() {
     }
   });
   const teachers = accounts.filter(item => item.role === 'teacher');
-  if (teachers.length !== 1 || teachers[0].id !== 'ls') {
-    throw new Error('老师账号必须且只能使用 ls');
+  const legacy = teachers.length === 1 && teachers[0].id === 'ls';
+  if (!legacy && (teachers.length !== TEACHERS.length || TEACHERS.some(item => !teachers.some(teacher => teacher.id === item.id)))) {
+    throw new Error('老师账号应为 chi、mat、eng、sci、com、tec；请运行 migrate-teachers.js 更新名单');
   }
 
   return { version: 2, accounts };

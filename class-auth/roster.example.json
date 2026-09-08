@@ -1,8 +1,45 @@
 {
-  "version": 2,
+  "version": 3,
   "accounts": [
-    { "id": "1", "name": "学生姓名示例一", "role": "student" },
-    { "id": "2", "name": "学生姓名示例二", "role": "student-admin" },
-    { "id": "ls", "name": "老师", "role": "teacher" }
+    {
+      "id": "1",
+      "name": "学生姓名示例一",
+      "role": "student"
+    },
+    {
+      "id": "2",
+      "name": "学生姓名示例二",
+      "role": "student-admin"
+    },
+    {
+      "id": "chi",
+      "name": "语文老师",
+      "role": "teacher"
+    },
+    {
+      "id": "mat",
+      "name": "数学老师",
+      "role": "teacher"
+    },
+    {
+      "id": "eng",
+      "name": "英语老师",
+      "role": "teacher"
+    },
+    {
+      "id": "sci",
+      "name": "科学老师",
+      "role": "teacher"
+    },
+    {
+      "id": "com",
+      "name": "社会老师",
+      "role": "teacher"
+    },
+    {
+      "id": "tec",
+      "name": "副科老师",
+      "role": "teacher"
+    }
   ]
 }

@@ -86,12 +86,12 @@
   }
 
   function loginView() {
-    showCard('<h2>登录 803 班级账号</h2><p>同学请输入自己的学号（1～52），老师输入 ls。姓名名单不会在登录页公开。</p><input id="caLoginId" class="ca-field" type="text" autocomplete="username" maxlength="8" placeholder="输入学号；老师输入 ls"><input id="caLoginPassword" class="ca-field" type="password" autocomplete="current-password" placeholder="输入密码"><div id="caError" class="ca-error"></div><div class="ca-actions"><button id="caLoginButton" class="ca-button primary" type="button">登录</button></div>');
+    showCard('<h2>登录 803 班级账号</h2><p>同学请输入自己的学号（1～52），老师账号：语文 chi、数学 mat、英语 eng、科学 sci、社会 com，其他副科共用 tec。姓名名单不会在登录页公开。</p><input id="caLoginId" class="ca-field" type="text" autocomplete="username" maxlength="8" placeholder="输入学号或老师账号"><input id="caLoginPassword" class="ca-field" type="password" autocomplete="current-password" placeholder="输入密码"><div id="caError" class="ca-error"></div><div class="ca-actions"><button id="caLoginButton" class="ca-button primary" type="button">登录</button></div>');
     var submit = async function () {
       var id = root.querySelector('#caLoginId').value;
       var password = root.querySelector('#caLoginPassword').value;
       var error = root.querySelector('#caError');
-      if (!id || !password) { error.textContent = '请输入学号（老师输入 ls）和密码'; return; }
+      if (!id || !password) { error.textContent = '请输入学号或老师账号，以及密码'; return; }
       try {
         var data = await api('/login', { method: 'POST', body: { id: id, password: password } });
         account = data.account;
@@ -105,7 +105,7 @@
 
   function accountView() {
     var roleLabel = account.role === 'teacher' ? '老师 · 管理员' : (account.isAdmin ? '学生管理员' : '同学');
-    var accountLabel = account.role === 'teacher' ? '老师账号 ls' : (esc(account.name)+' · 学号 '+esc(account.id));
+    var accountLabel = account.role === 'teacher' ? (esc(account.name)+' · 账号 '+esc(account.id)) : (esc(account.name)+' · 学号 '+esc(account.id));
     showCard('<h2>班级账号中心</h2><div class="ca-user"><strong>'+accountLabel+'</strong><span class="ca-role">'+roleLabel+'</span></div><div class="ca-tabs"><button id="caChangeButton" class="ca-button" type="button">修改我的密码</button>'+(account.isAdmin?'<button id="caManageButton" class="ca-button warn" type="button">管理全班账号</button>':'')+'</div><div class="ca-actions"><button id="caLogoutButton" class="ca-button danger" type="button">退出登录</button></div>');
     root.querySelector('#caChangeButton').onclick = changePasswordView;
     if (account.isAdmin) root.querySelector('#caManageButton').onclick = manageView;
@@ -135,7 +135,7 @@
       var data = await api('/accounts');
       var options = data.accounts.map(function (item) {
         var suffix = item.role === 'teacher' ? '（老师 · 管理员）' : (item.isAdmin ? '（学生管理员）' : '');
-        var label = item.role === 'teacher' ? 'ls · 老师' : ('学号 '+esc(item.id)+' · '+esc(item.name));
+        var label = item.role === 'teacher' ? (esc(item.id)+' · '+esc(item.name)) : ('学号 '+esc(item.id)+' · '+esc(item.name));
         return '<option value="'+esc(item.id)+'" data-enabled="'+(item.hasPassword?'1':'0')+'">'+label+suffix+'</option>';
       }).join('');
       var enabled = data.accounts.filter(function (item) { return item.hasPassword; }).length;

@@ -10,3 +10,5 @@ class-auth/accounts.json
 class-auth/accounts.json.before-school-number.json
 class-auth/sessions.json
 class-auth/roster.json
+
+class-auth/teacher-accounts-backup-*/

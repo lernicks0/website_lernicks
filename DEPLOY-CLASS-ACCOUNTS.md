@@ -1,3 +1,5 @@
+> 2026-09-08 老师账号已更新为 chi、mat、eng、sci、com、tec。当前安装与密码迁移规则请看 [DEPLOY-TEACHER-ACCOUNTS.md](DEPLOY-TEACHER-ACCOUNTS.md)，下文 ls 为历史配置。
+
 # 803 统一账号部署说明
 
 ## 账号规则

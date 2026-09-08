@@ -29,15 +29,15 @@ const migrate = spawnSync(process.execPath, [path.join(projectRoot, 'class-auth/
 });
 assert.equal(migrate.status, 0, migrate.stderr);
 const migratedRoster = JSON.parse(fs.readFileSync(rosterFile, 'utf8'));
-assert.equal(migratedRoster.accounts.length, 53);
+assert.equal(migratedRoster.accounts.length, 58);
 assert.equal(migratedRoster.accounts.filter(item => item.role === 'student-admin').length, 2);
-assert.equal(migratedRoster.accounts.filter(item => item.role === 'teacher').length, 1);
+assert.equal(migratedRoster.accounts.filter(item => item.role === 'teacher').length, 6);
 assert.deepEqual(migratedRoster.accounts.slice(0, 3).map(item => ({ id: item.id, name: item.name })), [
   { id: '1', name: fakeStudents[0] },
   { id: '2', name: fakeStudents[1] },
   { id: '3', name: fakeStudents[2] },
 ]);
-assert.equal(migratedRoster.accounts.at(-1).id, 'ls');
+assert.equal(migratedRoster.accounts.at(-1).id, 'tec');
 const migratedAccounts = JSON.parse(fs.readFileSync(accountsFile, 'utf8'));
 assert.deepEqual(migratedAccounts.accounts['1'].password, legacyPassword);
 assert.equal(fs.existsSync(`${accountsFile}.before-school-number.json`), true);
@@ -100,13 +100,15 @@ async function json(url, options = {}) {
     CLASS_ROSTER_FILE: rosterFile,
   };
 
-  const setup = spawnSync(process.execPath, [path.join(projectRoot, 'class-auth/manage.js'), 'set-password', 'ls'], {
+  for (const teacherId of ['chi','mat','eng','sci','com','tec']) {
+  const setup = spawnSync(process.execPath, [path.join(projectRoot, 'class-auth/manage.js'), 'set-password', teacherId], {
     cwd: projectRoot,
     env: { ...process.env, ...sharedEnv },
     input: 'TeacherTest123!',
     encoding: 'utf8',
   });
   assert.equal(setup.status, 0, setup.stderr);
+  }
   const studentSetup = spawnSync(process.execPath, [path.join(projectRoot, 'class-auth/manage.js'), 'set-password', '1'], {
     cwd: projectRoot,
     env: { ...process.env, ...sharedEnv },
@@ -150,21 +152,29 @@ async function json(url, options = {}) {
   privateResult = await json(`http://127.0.0.1:${pkPort}/data.json`);
   assert.equal(privateResult.response.status, 401);
 
+  for (const teacher of require('../class-auth/teachers').TEACHERS) {
+    const login = await json(`http://127.0.0.1:${authPort}/api/login`, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:teacher.id.toUpperCase(),password:'TeacherTest123!'})});
+    assert.equal(login.response.status,200);
+    assert.equal(login.body.account.name,teacher.name);
+    assert.equal(login.body.account.role,'teacher');
+    assert.equal(login.body.account.isAdmin,true);
+    assert.equal(login.body.account.countsAsStudent,false);
+  }
   let result = await json(`http://127.0.0.1:${authPort}/api/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id: 'LS', password: 'TeacherTest123!' }),
+    body: JSON.stringify({ id: 'TEC', password: 'TeacherTest123!' }),
   });
   assert.equal(result.response.status, 200, JSON.stringify(result.body));
   assert.deepEqual(
     { id: result.body.account.id, name: result.body.account.name, role: result.body.account.role, isAdmin: result.body.account.isAdmin, countsAsStudent: result.body.account.countsAsStudent },
-    { id: 'ls', name: '老师', role: 'teacher', isAdmin: true, countsAsStudent: false },
+    { id: 'tec', name: '副科老师', role: 'teacher', isAdmin: true, countsAsStudent: false },
   );
   const cookie = result.response.headers.get('set-cookie').split(';', 1)[0];
 
   result = await json(`http://127.0.0.1:${scorePort}/api/state`, { headers: { cookie } });
   assert.equal(result.body.names.length, 52);
-  assert.equal(result.body.names.includes('老师'), false);
+  assert.equal(result.body.names.includes('副科老师'), false);
   const studentA = result.body.names[0];
   const studentB = result.body.names[1];
 
@@ -175,13 +185,13 @@ async function json(url, options = {}) {
   assert.equal(result.response.status, 200, JSON.stringify(result.body));
   result = await json(`http://127.0.0.1:${scorePort}/api/score`, {
     method: 'POST', headers: { 'content-type': 'application/json', cookie },
-    body: JSON.stringify({ name: '老师', delta: 1 }),
+    body: JSON.stringify({ name: '副科老师', delta: 1 }),
   });
   assert.equal(result.response.status, 400);
 
   result = await json(`http://127.0.0.1:${goalPort}/api/state`, { headers: { cookie } });
   assert.equal(result.body.names.length, 52);
-  assert.equal(result.body.names.includes('老师'), false);
+  assert.equal(result.body.names.includes('副科老师'), false);
   result = await json(`http://127.0.0.1:${goalPort}/api/round`, {
     method: 'POST', headers: { 'content-type': 'application/json', cookie },
     body: JSON.stringify({ title: '教师权限测试' }),
@@ -190,7 +200,7 @@ async function json(url, options = {}) {
   const roundId = result.body.round.id;
   result = await json(`http://127.0.0.1:${goalPort}/api/goal`, {
     method: 'POST', headers: { 'content-type': 'application/json', cookie },
-    body: JSON.stringify({ roundId, name: '老师', rank: 1, score: 800 }),
+    body: JSON.stringify({ roundId, name: '副科老师', rank: 1, score: 800 }),
   });
   assert.equal(result.response.status, 400);
 
@@ -231,7 +241,7 @@ async function json(url, options = {}) {
   result = await json(`http://127.0.0.1:${pkPort}/names.json`, { headers: { cookie } });
   assert.equal(result.response.status, 200, JSON.stringify(result.body));
   assert.equal(result.body.names.length, 52);
-  assert.equal(result.body.names.includes('老师'), false);
+  assert.equal(result.body.names.includes('副科老师'), false);
 
   result = await json(`http://127.0.0.1:${pkPort}/save.json`, {
     method: 'POST', headers: { 'content-type': 'application/json', cookie },
@@ -240,11 +250,11 @@ async function json(url, options = {}) {
   assert.equal(result.response.status, 200, JSON.stringify(result.body));
   result = await json(`http://127.0.0.1:${pkPort}/save.json`, {
     method: 'POST', headers: { 'content-type': 'application/json', cookie },
-    body: JSON.stringify({ pkList: [{ self: '老师', opponent: studentA, time: '' }], savedExams: [] }),
+    body: JSON.stringify({ pkList: [{ self: '副科老师', opponent: studentA, time: '' }], savedExams: [] }),
   });
   assert.equal(result.response.status, 400);
 
-  process.stdout.write('学号 1～52 与姓名映射有效；老师可用 ls 登录且不参与积分、目标和 PK。\n');
+  process.stdout.write('学号 1～52 与姓名映射有效；六类老师账号可登录且不参与积分、目标和 PK。\n');
 })().finally(async () => {
   for (const child of children) child.kill();
   await new Promise(resolve => setTimeout(resolve, 100));

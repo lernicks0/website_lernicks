@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { TEACHERS } = require('./teachers');
 
 const accountsFile = process.env.CLASS_ACCOUNTS_FILE || path.join(__dirname, 'accounts.json');
 const rosterFile = process.env.CLASS_ROSTER_FILE || path.join(__dirname, 'roster.json');
@@ -60,7 +61,7 @@ async function main() {
     if (existingIds.some(id => /^\d+$/.test(id))) {
       throw new Error('账号已经是学号格式，但缺少含姓名映射的私密名单，无法自动恢复姓名');
     }
-    studentNames = existingIds.filter(id => id !== teacherName && id.toLowerCase() !== teacherId);
+    studentNames = existingIds.filter(id => id !== teacherName && id.toLowerCase() !== teacherId && !TEACHERS.some(item => item.id === id.toLowerCase() || item.name === id));
   }
   if (!studentNames.length) throw new Error('已有账号文件中没有学生账号，无法迁移私密名单');
   if (new Set(studentNames).size !== studentNames.length) throw new Error('现有私密名单中存在重复姓名');
@@ -85,17 +86,17 @@ async function main() {
     const id = String(index + 1);
     return { id, name, role: adminNumbers.has(id) ? 'student-admin' : 'student' };
   });
-  rosterAccounts.push({ id: teacherId, name: teacherName, role: 'teacher' });
+  rosterAccounts.push(...TEACHERS);
 
   const migratedAccounts = {};
   for (const item of rosterAccounts) {
-    const oldAccount = savedAccounts[item.id] || savedAccounts[item.name];
+    const oldAccount = savedAccounts[item.id] || savedAccounts[item.name] || (item.id === 'tec' ? savedAccounts.ls || savedAccounts[teacherName] : null);
     migratedAccounts[item.id] = validPasswordAccount(oldAccount);
   }
 
   await atomicWrite(accountsFile, { version: 1, accounts: migratedAccounts });
   await atomicWrite(rosterFile, { version: 2, accounts: rosterAccounts });
-  console.log(`学号登录已初始化：${studentNames.length} 个学生账号，${adminNumbers.size} 个学生管理员，老师账号为 ls。`);
+  console.log(`学号登录已初始化：${studentNames.length} 个学生账号，${adminNumbers.size} 个学生管理员，老师账号为 chi、mat、eng、sci、com、tec。`);
   console.log(`迁移前账号备份：${backupFile}`);
 }
 

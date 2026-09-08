@@ -25,7 +25,7 @@ async function main() {
     return;
   }
   console.error('用法：node manage.js list');
-  console.error('或：printf 密码 | node manage.js set-password 学号（老师使用 ls）');
+  console.error('或：printf 密码 | node manage.js set-password 学号（老师使用 chi/mat/eng/sci/com/tec）');
   process.exitCode = 1;
 }
 
