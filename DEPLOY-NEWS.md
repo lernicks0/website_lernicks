@@ -14,6 +14,19 @@
 
 ## 发布与安装
 
+已发布到 GitHub `master`：`00936de6c869013ee742d27d1d565c14a9fcf8f3`。
+固定提交 CDN 安装脚本及新闻包已下载，并与本地发布文件逐字节哈希核对一致。
+安装脚本 SHA-256：`65f71342874e4819750ae7092d0ac8c7c1c8146bdecc7946e31c3f5526027175`。
+服务器尚未安装，DNS 尚未在本任务配置或验证。
+
+在 WebShell 执行：
+
+```bash
+curl -fL --retry 3 --max-time 180 -o /tmp/news-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@00936de6c869013ee742d27d1d565c14a9fcf8f3/deploy/install-news-20260908.sh" &&
+echo "65f71342874e4819750ae7092d0ac8c7c1c8146bdecc7946e31c3f5526027175  /tmp/news-install.sh" | sha256sum -c - &&
+bash /tmp/news-install.sh 00936de6c869013ee742d27d1d565c14a9fcf8f3
+```
+
 更新包 `deploy/news-20260908.tar.gz` 仅包含 news 的四个程序文件、CLA 入口补丁及 Nginx 示例。
 安装脚本 `deploy/install-news-20260908.sh` 使用固定 Git 提交下载包并校验 SHA-256；先确认私密名单和账号服务，再备份程序、启动服务并验证本机接口与域名转发。安装失败会恢复程序，新闻数据不回滚。
 

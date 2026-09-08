@@ -109,7 +109,7 @@ const server = http.createServer(async (req, res) => {
       if (!account) fail(401, '请先登录班级账号');
       if (url.pathname === '/api/mine' && req.method === 'GET') return json(res, 200, { articles: read().articles.filter(a => a.authorId === account.id).reverse() });
       if (url.pathname === '/api/review' && req.method === 'GET') {
-        if (!reviewer(account)) fail(403, '只有王韩润可以审核新闻');
+        if (!reviewer(account)) fail(403, '仅审核人可以审核新闻');
         return json(res, 200, { articles: read().articles.filter(a => a.status === 'pending') });
       }
       if (url.pathname === '/api/submit' && req.method === 'POST') {
@@ -120,11 +120,11 @@ const server = http.createServer(async (req, res) => {
             status: 'pending', submittedAt: new Date().toISOString(), publishedAt: null, reviewNote: '' };
           data.articles.push(item); return item;
         });
-        return json(res, 201, { article, message: '稿件已送达王韩润的审核箱' });
+        return json(res, 201, { article, message: '稿件已递交审核' });
       }
       const reviewMatch = url.pathname.match(/^\/api\/review\/([\w-]+)$/);
       if (reviewMatch && req.method === 'POST') {
-        if (!reviewer(account)) fail(403, '只有王韩润可以审核新闻');
+        if (!reviewer(account)) fail(403, '仅审核人可以审核新闻');
         const input = await body(req);
         if (!['approve', 'reject'].includes(input.action)) fail(400, '审核操作不正确');
         const note = string(input.note ?? '', '审核意见', 500, input.action === 'reject');
