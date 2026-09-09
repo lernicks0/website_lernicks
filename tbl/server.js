@@ -1,3 +1,4 @@
+/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'tbl');
 // Lernicks 图床后端
 // 只使用 Node.js 自带功能，服务器不需要另外安装软件。
 

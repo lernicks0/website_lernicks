@@ -2581,7 +2581,9 @@ function applyAccount(account){
     refreshAll();
 }
 
+var accountInitialHandled=false;
 window.addEventListener('class-account-change', function(event){
+    accountInitialHandled=true;
     var nextAccount = event.detail ? event.detail.account : null;
     applyAccount(nextAccount);
     if(nextAccount) loadData();
@@ -2589,7 +2591,7 @@ window.addEventListener('class-account-change', function(event){
 });
 
 if(window.ClassAccount){
-    window.ClassAccount.ready.then(function(account){ applyAccount(account); if(account) loadData(); });
+    window.ClassAccount.ready.then(function(account){ if(accountInitialHandled)return;accountInitialHandled=true; applyAccount(account); if(account) loadData(); });
 }
 // 先显示空界面
 refreshAll();

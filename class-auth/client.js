@@ -1,6 +1,8 @@
 const http = require('http');
 
 const AUTH_PORT = Number(process.env.CLASS_AUTH_PORT) || 1153;
+const authAgent = new http.Agent({ keepAlive: true, maxSockets: 32, maxFreeSockets: 8 });
+const requestAccounts = new WeakMap();
 
 function proxyAccountRequest(req, res) {
   const targetPath = req.url.replace(/^\/account-api/, '/api');
@@ -8,6 +10,7 @@ function proxyAccountRequest(req, res) {
   headers.host = `127.0.0.1:${AUTH_PORT}`;
   headers['x-original-host'] = req.headers.host || '';
   const proxy = http.request({
+    agent: authAgent,
     hostname: '127.0.0.1',
     port: AUTH_PORT,
     path: targetPath,
@@ -30,14 +33,19 @@ function proxyAccountRequest(req, res) {
 }
 
 function getAccount(req) {
-  return new Promise(resolve => {
+  if (!req.headers.cookie) return Promise.resolve(null);
+  if (requestAccounts.has(req)) return requestAccounts.get(req);
+  const result = new Promise(resolve => {
     const request = http.request({
+      agent: authAgent,
       hostname: '127.0.0.1',
       port: AUTH_PORT,
       path: '/internal/session',
       method: 'GET',
       headers: { cookie: req.headers.cookie || '' }
     }, response => {
+      response.on('error', () => resolve(null));
+      response.on('aborted', () => resolve(null));
       let body = '';
       response.on('data', chunk => {
         body += chunk;
@@ -54,6 +62,8 @@ function getAccount(req) {
     request.on('error', () => resolve(null));
     request.end();
   });
+  requestAccounts.set(req, result);
+  return result;
 }
 
 module.exports = { proxyAccountRequest, getAccount };

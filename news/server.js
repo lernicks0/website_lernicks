@@ -1,3 +1,4 @@
+/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'news');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,10 +11,15 @@ const CATEGORIES = ['运动会预选赛', '日常生活', '八卦', '专题'];
 // 身份来自账号服务的私密名单，不接受浏览器传入的姓名或管理员标记。
 const reviewer = account => !!account && (process.env.NEWS_REVIEWER_ID
   ? account.id === process.env.NEWS_REVIEWER_ID : account.name === '王韩润');
+let dataCache;
 function read() {
   try {
+    const stat = fs.statSync(DATA);
+    const key = `${stat.mtimeMs}:${stat.ctimeMs}:${stat.size}`;
+    if (dataCache?.key === key) return dataCache.value;
     const data = JSON.parse(fs.readFileSync(DATA, 'utf8'));
     if (data.version !== 1 || !Array.isArray(data.articles)) throw new Error('Invalid news data');
+    dataCache = { key, value: data };
     return data;
   } catch (error) {
     if (error.code === 'ENOENT') return { version: 1, articles: [] };
@@ -23,12 +29,13 @@ function read() {
 let chain = Promise.resolve();
 function update(change) {
   const job = chain.then(async () => {
-    const data = read();
+    const data = structuredClone(read());
     const result = change(data);
     await fs.promises.mkdir(path.dirname(DATA), { recursive: true });
     const temp = DATA + '.' + crypto.randomUUID() + '.tmp';
     await fs.promises.writeFile(temp, JSON.stringify(data), { mode: 0o600 });
     await fs.promises.rename(temp, DATA);
+    dataCache = null;
     return result;
   });
   chain = job.catch(() => {});

@@ -1,3 +1,4 @@
+/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'mk');
 // Lernicks Markdown / LaTeX / HTML 文档分享站
 // 纯 Node.js 实现，不需要在服务器安装新的 npm 软件包。
 

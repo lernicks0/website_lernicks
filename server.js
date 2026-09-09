@@ -1,3 +1,4 @@
+/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'note');
 // telegram-notes 后端服务
 // 存储实现:本地 JSON 文件(data/notes.json, data/feedback.json)
 // 生产环境如果需要多实例部署,建议把 store.js 换成真实数据库(见 README)

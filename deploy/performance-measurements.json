@@ -1,0 +1,56 @@
+[
+  {
+    "site": "main",
+    "bytes": 56122,
+    "gzipBytes": 15255,
+    "reduction": "73%"
+  },
+  {
+    "site": "cla",
+    "bytes": 50201,
+    "gzipBytes": 13025,
+    "reduction": "74%"
+  },
+  {
+    "site": "pk",
+    "bytes": 126343,
+    "gzipBytes": 31897,
+    "reduction": "75%"
+  },
+  {
+    "site": "sco",
+    "bytes": 62713,
+    "gzipBytes": 16647,
+    "reduction": "73%"
+  },
+  {
+    "site": "goal",
+    "bytes": 65155,
+    "gzipBytes": 17127,
+    "reduction": "74%"
+  },
+  {
+    "site": "mk",
+    "bytes": 62220,
+    "gzipBytes": 16739,
+    "reduction": "73%"
+  },
+  {
+    "site": "tbl",
+    "bytes": 67184,
+    "gzipBytes": 17713,
+    "reduction": "74%"
+  },
+  {
+    "site": "note",
+    "bytes": 70662,
+    "gzipBytes": 18191,
+    "reduction": "74%"
+  },
+  {
+    "site": "news",
+    "bytes": 17748,
+    "gzipBytes": 6613,
+    "reduction": "63%"
+  }
+]

@@ -565,8 +565,9 @@ html.astra .ca-user{background:var(--bg);border-color:var(--line);border-radius:
     async function createArchive(){const title=document.getElementById('archiveTitle').value.trim();try{await api('/api/archive',{method:'POST',body:JSON.stringify({title})});document.getElementById('archiveTitle').value='';await loadState(true);renderArchives();toast('当前积分已归档')}catch(error){toast(error.message,true)}}
     async function restoreArchive(id){if(!confirm('确定用这份归档覆盖当前全部积分吗？当前积分会被替换。'))return;try{await api('/api/restore',{method:'POST',body:JSON.stringify({id})});await loadState(true);renderArchives();toast('已用归档覆盖当前积分')}catch(error){toast(error.message,true)}}
     async function deleteArchive(id){if(!confirm('确定删除这份归档吗？删除后不能恢复。'))return;try{await api('/api/delete-archive',{method:'POST',body:JSON.stringify({id})});await loadState(true);renderArchives();toast('归档已删除')}catch(error){toast(error.message,true)}}
-    window.addEventListener('class-account-change',event=>{currentAccount=event.detail.account;updateAdminUI();if(currentAccount&&localStorage.getItem(GATE_KEY)==='1')loadState();else{state={names:[],scores:{},archives:[]};renderAll()}});
-    if(window.ClassAccount)ClassAccount.ready.then(account=>{currentAccount=account;updateAdminUI();if(account&&localStorage.getItem(GATE_KEY)==='1')loadState()});
+    let accountInitialHandled=false;
+    window.addEventListener('class-account-change',event=>{accountInitialHandled=true;currentAccount=event.detail.account;updateAdminUI();if(currentAccount&&localStorage.getItem(GATE_KEY)==='1')loadState();else{state={names:[],scores:{},archives:[]};renderAll()}});
+    if(window.ClassAccount)ClassAccount.ready.then(account=>{if(accountInitialHandled)return;accountInitialHandled=true;currentAccount=account;updateAdminUI();if(account&&localStorage.getItem(GATE_KEY)==='1')loadState()});
     if(localStorage.getItem(GATE_KEY)!=='1'){newGateQuestion();document.getElementById('gate').classList.add('show')}
     setInterval(()=>{if(currentAccount&&document.visibilityState==='visible'&&!document.querySelector('.overlay.show:not(#gate)'))loadState(true)},5000);
   </script>

@@ -40,10 +40,15 @@
     if (!response.ok) throw new Error(result.message || '操作失败，请重试');
     return result;
   }
-  async function identity() {
-    me = await api('/api/me');
-    $('#reviewNav').hidden = !me.canReview;
-    $('#pendingCount').textContent = me.pending ? `(${me.pending})` : '';
+  let identityPending;
+  function identity() {
+    if (identityPending) return identityPending;
+    identityPending = (async () => {
+      me = await api('/api/me');
+      $('#reviewNav').hidden = !me.canReview;
+      $('#pendingCount').textContent = me.pending ? `(${me.pending})` : '';
+    })().finally(() => { identityPending = null; });
+    return identityPending;
   }
   function headline(a, editable = false) {
     return `<div class="headline"><h1>${esc(a.title || (editable ? '在这里写下新闻主标题' : ''))}</h1>${['kicker','subtitle'].map(key => a[key] ? `<p class="aux ${key} ${editable ? 'draggable' : ''}" data-position="${key}" ${editable ? 'tabindex="0" role="button" aria-label="拖动调整位置，也可使用方向键"' : ''}>${esc(a[key])}</p>` : '').join('')}</div>`;
@@ -152,7 +157,8 @@
     document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===route));
     $('#view').innerHTML='<p class="muted" role="status">正在加载…</p>';
     try {
-      await identity(); if(version!==routeVersion)return;
+      if (['write','mine','review'].includes(route)) { await identity(); if(version!==routeVersion)return; }
+      else identity().catch(() => {});
       if(route==='write')return edit();
       if(route==='mine'||route==='review')return await submissions(route==='review',version);
       if(route.startsWith('article/')){
@@ -164,7 +170,13 @@
     }catch(error){if(version===routeVersion){$('#view').innerHTML=`<div class="empty"><h2>暂时无法加载</h2><p>${esc(error.message)}</p><button id="retry">重新加载</button></div>`;$('#retry').onclick=render;}}
   }
   window.addEventListener('hashchange',render);
-  window.addEventListener('class-account-change',()=>{draft=null;editorOwner=null;render();});
+  window.addEventListener('class-account-change',()=>{
+    draft=null;editorOwner=null;
+    // 登录初始事件不重复下载公开新闻；私密视图依然重新验证。
+    const route=location.hash.slice(1)||'home';
+    const refresh=()=>['write','mine','review'].includes(route)?render():identity().catch(()=>{});
+    if(identityPending) identityPending.then(refresh,refresh); else refresh();
+  });
   window.addEventListener('beforeunload',event=>{if(draft&&(draft.title||draft.body||draft.kicker||draft.subtitle)){event.preventDefault();event.returnValue='';}});
   window.addEventListener('resize',()=>{
     if($('#previewArticle')&&draft)place($('#previewArticle'),draft.positions);

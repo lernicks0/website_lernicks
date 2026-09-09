@@ -176,23 +176,22 @@
 
   function open() { account ? accountView() : loginView(); }
 
-  var ready = (async function () {
-    ensureRoot();
-    try {
-      var data = await api('/session');
-      account = data.account || null;
-    } catch (_) { account = null; }
-    emit();
-    return account;
-  })();
+  var sessionRefresh = null;
+  function refreshSession() {
+    if (sessionRefresh) return sessionRefresh;
+    sessionRefresh = (async function () {
+      try { account = (await api('/session')).account || null; } catch (_) { account = null; }
+      emit(); return account;
+    })().finally(function () { sessionRefresh = null; });
+    return sessionRefresh;
+  }
+  ensureRoot();
+  var ready = refreshSession();
 
   window.ClassAccount = {
     ready: ready,
     open: open,
-    refresh: async function () {
-      try { account = (await api('/session')).account || null; } catch (_) { account = null; }
-      emit(); return account;
-    },
+    refresh: refreshSession,
     requireLogin: function () { if (!account) loginView(); return !!account; }
   };
   Object.defineProperty(window.ClassAccount, 'account', { get: function () { return account; } });

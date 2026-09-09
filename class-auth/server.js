@@ -1,3 +1,4 @@
+/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'auth');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');

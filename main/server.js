@@ -1,3 +1,4 @@
+/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'main');
 // Lernicks 总主站：同时服务 lernicks.cn 和 www.lernicks.cn
 const http = require('http');
 const fs = require('fs');
