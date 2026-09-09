@@ -52,6 +52,7 @@
       '#classAccountRoot .ca-field,#classAccountRoot .ca-field option{color:var(--ca-text);background:var(--ca-field);border-color:var(--ca-line);color-scheme:inherit}#classAccountRoot .ca-field{min-width:0;max-width:100%}#classAccountRoot .ca-field::placeholder{color:var(--ca-muted);opacity:1}',
       '#classAccountRoot .ca-field:focus,#classAccountRoot :focus-visible{outline:2px solid var(--ca-accent);outline-offset:2px;border-color:var(--ca-accent);box-shadow:none}',
       '#classAccountRoot .ca-button,#classAccountRoot .ca-close{background:var(--ca-field);color:var(--ca-text);border-color:var(--ca-line)}#classAccountRoot .ca-button.primary{background:var(--ca-accent);color:var(--ca-on-accent)}',
+      '#classAccountRoot .ca-close{display:flex;align-items:center;justify-content:center;width:34px;height:34px;min-width:34px;min-height:34px;margin:0;padding:0;line-height:1;letter-spacing:0;appearance:none}#classAccountRoot .ca-close svg{display:block;width:14px;height:14px;flex:none;pointer-events:none}',
       '#classAccountRoot .ca-button.warn{color:var(--ca-warn)}#classAccountRoot .ca-button.danger,#classAccountRoot .ca-error{color:var(--ca-danger)}#classAccountRoot .ca-error.ca-success{color:var(--ca-success)}',
       '#classAccountRoot .ca-user{background:var(--ca-field);border-color:var(--ca-line);overflow-wrap:anywhere}#classAccountRoot .ca-role{color:var(--ca-success);background:var(--ca-role)}',
       '#classAccountRoot .ca-card .ca-note{color:var(--ca-warn)!important;background:var(--ca-note)}#classAccountRoot .ca-status{color:var(--ca-muted)}#classAccountRoot .ca-card .ca-status.on{color:var(--ca-success)}'
@@ -95,7 +96,7 @@
 
   function showCard(html, wide) {
     ensureRoot();
-    root.innerHTML = '<div class="ca-overlay"><div class="ca-card'+(wide?' ca-wide':'')+'"><button class="ca-close" type="button">×</button>'+html+'</div></div>';
+    root.innerHTML = '<div class="ca-overlay"><div class="ca-card'+(wide?' ca-wide':'')+'"><button class="ca-close" type="button" aria-label="关闭"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>'+html+'</div></div>';
     root.querySelector('.ca-close').onclick = close;
     root.querySelector('.ca-overlay').onclick = function (event) { if (event.target === event.currentTarget) close(); };
   }
