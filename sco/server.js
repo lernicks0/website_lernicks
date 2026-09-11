@@ -1,4 +1,4 @@
-/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'sco');
+/* lernicks-performance */ if (require('fs').existsSync(require('path').join(__dirname, '../site-performance/static.cjs'))) require('../site-performance/static.cjs').install(__dirname, 'sco');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -11,9 +11,10 @@ const DATA_FILE = process.env.SCO_DATA_FILE || path.join(__dirname, 'sco-data.js
 
 const NAMES = [...STUDENT_NAMES];
 const NAME_SET = new Set(NAMES);
+const DEFAULT_DEDUCTION_REASON = '自习课讲话/打闹';
 
 function emptyState() {
-  return { version: 1, scores: Object.fromEntries(NAMES.map(name => [name, 0])), archives: [], updatedAt: null };
+  return { version: 1, scores: Object.fromEntries(NAMES.map(name => [name, 0])), archives: [], deductions: [], updatedAt: null };
 }
 
 function readState() {
@@ -25,6 +26,7 @@ function readState() {
       state.scores[name] = Number.isInteger(value) ? value : 0;
     }
     state.archives = Array.isArray(saved.archives) ? saved.archives.slice(0, 100) : [];
+    state.deductions = Array.isArray(saved.deductions) ? saved.deductions : [];
     state.updatedAt = saved.updatedAt || null;
     return state;
   } catch (_) {
@@ -128,8 +130,19 @@ const server = http.createServer(async (req, res) => {
         json(res, 400, { ok: false, message: '姓名或分数不正确，只能填写非 0 整数' });
         return;
       }
-      const { state } = await updateState(current => { current.scores[body.name] += delta; });
-      json(res, 200, { ok: true, name: body.name, score: state.scores[body.name], updatedAt: state.updatedAt });
+      if (delta < 0 && body.reason != null && typeof body.reason !== 'string') {
+        json(res, 400, { ok: false, message: '扣分原因请填写文字' }); return;
+      }
+      const reason = delta < 0 ? (String(body.reason || '').trim() || DEFAULT_DEDUCTION_REASON) : '';
+      if (reason.length > 200) {
+        json(res, 400, { ok: false, message: '扣分原因不能超过 200 个字' }); return;
+      }
+      const deduction = delta < 0 ? { id: crypto.randomBytes(12).toString('hex'), name: body.name, delta, reason, createdAt: new Date().toISOString() } : null;
+      const { state } = await updateState(current => {
+        current.scores[body.name] += delta;
+        if (deduction) current.deductions.unshift(deduction);
+      });
+      json(res, 200, { ok: true, name: body.name, score: state.scores[body.name], deduction, updatedAt: state.updatedAt });
       return;
     }
 
@@ -180,10 +193,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const safePath = path.normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, '');
-    const filePath = path.join(__dirname, safePath);
-    if (!filePath.startsWith(__dirname)) { res.writeHead(403); res.end('Forbidden'); return; }
-    serveFile(res, filePath);
+    // 积分和原因仅通过已登录的 /api/state 返回，不能作为静态文件下载。
+    if (url.pathname === '/index.html') { serveFile(res, path.join(__dirname, 'index.html')); return; }
+    res.writeHead(404); res.end('Not Found');
   } catch (error) {
     json(res, error.status || 500, { ok: false, message: error.message || '服务器暂时出错了' });
   }
