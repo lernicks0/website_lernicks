@@ -25,10 +25,10 @@
 
 ## WebShell 安装
 
-代码和安装包已发布至 GitHub master 固定提交 `75ed753117832fbfbad658258eb2b9a9558951d7`。在 WebShell 执行：
+代码和安装包已发布至 GitHub master 固定提交 `3e59dbfc2229357ba0ae17abc53adcf064bf3237`。在 WebShell 执行：
 
 ```bash
-SB_COMMIT='75ed753117832fbfbad658258eb2b9a9558951d7'
+SB_COMMIT='3e59dbfc2229357ba0ae17abc53adcf064bf3237'
 curl -fL --retry 3 --max-time 180 -o /tmp/sb-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@$SB_COMMIT/deploy/install-sb-20261001.sh" &&
 echo 'bc2babad6600674f9e71a6de4d36f70d36a0dad452e10c9b35fafb85bbe8499a  /tmp/sb-install.sh' | sha256sum -c - &&
 bash /tmp/sb-install.sh "$SB_COMMIT"

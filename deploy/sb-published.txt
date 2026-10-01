@@ -1,16 +1,17 @@
 神人俱乐部发布记录（2026-10-01）
 仓库：https://github.com/lernicks0/website_lernicks
 分支：master
-代码与安装包固定提交：75ed753117832fbfbad658258eb2b9a9558951d7
+代码与安装包固定提交：3e59dbfc2229357ba0ae17abc53adcf064bf3237
 包 SHA-256：a3b2cc57fa6ae6afb35f605c3a4b9bda6fe0a3f7d11907b04c0ce1f8fde400fe
-安装器 SHA-256：77f28807a21d90a664b19605fde6fa8f31322f10926eb3939c92bd52a6837d60
+安装器 SHA-256：bc2babad6600674f9e71a6de4d36f70d36a0dad452e10c9b35fafb85bbe8499a
 服务器尚未在此任务安装；目标：https://sb.lernicks.cn
 Cloudflare 代理 A 记录：sb → 124.223.201.40
 
 WebShell：
-SB_COMMIT='75ed753117832fbfbad658258eb2b9a9558951d7'
+SB_COMMIT='3e59dbfc2229357ba0ae17abc53adcf064bf3237'
 curl -fL --retry 3 --max-time 180 -o /tmp/sb-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@$SB_COMMIT/deploy/install-sb-20261001.sh" &&
-echo '77f28807a21d90a664b19605fde6fa8f31322f10926eb3939c92bd52a6837d60  /tmp/sb-install.sh' | sha256sum -c - &&
+echo 'bc2babad6600674f9e71a6de4d36f70d36a0dad452e10c9b35fafb85bbe8499a  /tmp/sb-install.sh' | sha256sum -c - &&
 bash /tmp/sb-install.sh "$SB_COMMIT"
 
 本地验证：node tests/sb.integration.cjs；node --check；bash -n；桌面、390px、320px浏览器检查及键盘操作。
+CDN 校验：固定提交的安装器与更新包已下载，SHA-256 与本地一致。
