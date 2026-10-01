@@ -25,13 +25,15 @@
 
 ## WebShell 安装
 
+腾讯云 WebShell 当前可能以 `ubuntu` 登录，下面命令必须使用 `sudo bash`，才能读取 `/root/.nvm` 并管理 `/root`、PM2 和 Nginx。新的安装器已将 root 检查移到环境检查之前；下面仍固定使用已校验的 nvm 修复提交，配合 sudo 执行。
+
 代码和安装包已发布至 GitHub master 固定提交 `3e59dbfc2229357ba0ae17abc53adcf064bf3237`。在 WebShell 执行：
 
 ```bash
 SB_COMMIT='3e59dbfc2229357ba0ae17abc53adcf064bf3237'
 curl -fL --retry 3 --max-time 180 -o /tmp/sb-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@$SB_COMMIT/deploy/install-sb-20261001.sh" &&
 echo 'bc2babad6600674f9e71a6de4d36f70d36a0dad452e10c9b35fafb85bbe8499a  /tmp/sb-install.sh' | sha256sum -c - &&
-bash /tmp/sb-install.sh "$SB_COMMIT"
+sudo bash /tmp/sb-install.sh "$SB_COMMIT"
 ```
 
 成功输出 `SB_INSTALL_SUCCESS`。安装程序仅新增本机服务与缺失的域名配置，不改其他站点、不全量覆盖服务器检出。

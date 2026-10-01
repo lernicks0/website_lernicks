@@ -11,7 +11,7 @@ WebShell：
 SB_COMMIT='3e59dbfc2229357ba0ae17abc53adcf064bf3237'
 curl -fL --retry 3 --max-time 180 -o /tmp/sb-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@$SB_COMMIT/deploy/install-sb-20261001.sh" &&
 echo 'bc2babad6600674f9e71a6de4d36f70d36a0dad452e10c9b35fafb85bbe8499a  /tmp/sb-install.sh' | sha256sum -c - &&
-bash /tmp/sb-install.sh "$SB_COMMIT"
+sudo bash /tmp/sb-install.sh "$SB_COMMIT"
 
 本地验证：node tests/sb.integration.cjs；node --check；bash -n；桌面、390px、320px浏览器检查及键盘操作。
 CDN 校验：固定提交的安装器与更新包已下载，SHA-256 与本地一致。

@@ -21,8 +21,20 @@ nvm() {
   export PATH
 }
 NVM
+if SB_TEST_OUTPUT=$(
+  export NVM_DIR="$SB_TEST_STAGE/nvm"
+  export SB_TEST_LOG="$SB_TEST_STAGE/nonroot.log"
+  id() { printf '1000\n'; }
+  set -- 3e59dbfc2229357ba0ae17abc53adcf064bf3237
+  eval "$SB_TEST_BOOTSTRAP"
+); then
+  echo 'Non-root invocation unexpectedly succeeded'; exit 1
+fi
+[[ "$SB_TEST_OUTPUT" = *'sudo bash'* ]]
+test ! -e "$SB_TEST_STAGE/nonroot.log"
 for SB_TEST_CASE in missing-tools missing-pm2 ready fallback; do
   (
+    id() { printf '0\n'; }
     export NVM_DIR="$SB_TEST_STAGE/nvm"
     export SB_TEST_LOG="$SB_TEST_STAGE/$SB_TEST_CASE.log"
     unset SB_TEST_UNSET
@@ -41,4 +53,4 @@ for SB_TEST_CASE in missing-tools missing-pm2 ready fallback; do
   )
 done
 grep -q 'use --silent node' "$SB_TEST_STAGE/fallback.log"
-echo 'SB bootstrap passed: missing Node, missing PM2, existing environment, default-alias fallback, strict-mode restoration.'
+echo 'SB bootstrap passed: non-root stops before nvm, missing Node, missing PM2, existing environment, default-alias fallback, strict-mode restoration.'
