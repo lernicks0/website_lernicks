@@ -21,10 +21,10 @@
 
 ## WebShell 安装
 
-用发布记录 `deploy/sb-published.txt` 中的固定提交替换下面的 `本次发布提交`，执行：
+代码和安装包已发布至 GitHub master 固定提交 `75ed753117832fbfbad658258eb2b9a9558951d7`。在 WebShell 执行：
 
 ```bash
-SB_COMMIT='本次发布提交'
+SB_COMMIT='75ed753117832fbfbad658258eb2b9a9558951d7'
 curl -fL --retry 3 --max-time 180 -o /tmp/sb-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@$SB_COMMIT/deploy/install-sb-20261001.sh" &&
 echo '77f28807a21d90a664b19605fde6fa8f31322f10926eb3939c92bd52a6837d60  /tmp/sb-install.sh' | sha256sum -c - &&
 bash /tmp/sb-install.sh "$SB_COMMIT"
