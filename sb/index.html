@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f5ed">
+  <meta name="description" content="水滴鱼、芙莉莲、奶龙集合。来神人俱乐部，围观三位主角的离谱日常。">
+  <title>神人俱乐部 · 水滴鱼 × 芙莉莲 × 奶龙</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="preload" href="/assets/trio.webp" as="image">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="header wrap">
+    <a class="brand" href="#" aria-label="神人俱乐部首页"><span class="brand-mark" aria-hidden="true"><i></i><i></i></span>神人俱乐部<span class="brand-sub">SHENREN CLUB</span></a>
+    <nav aria-label="主导航"><a href="#members">神人图鉴</a><a href="#theater">小剧场 <span aria-hidden="true">↗</span></a></nav>
+    <span class="open-label"><span></span>今日照常发癫</span>
+  </header>
+  <main>
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="tiny-star" aria-hidden="true">✳</span> 精神状态良好（大概）</p>
+        <h1 id="hero-title">正常发挥，<br><span>是不可能的。</span><svg class="title-spark" viewBox="0 0 70 70" aria-hidden="true"><path d="M35 4v62M4 35h62M13 13l44 44M13 57l44-44"/></svg></h1>
+        <p class="intro">一条鱼，一个精灵，一只龙。<br>三种精神状态，奇妙地统一了。</p>
+        <div class="hero-actions"><button class="button dark" id="random-act">随机开整 <span aria-hidden="true">↗</span></button><a class="button plain" href="#members">认识一下 <span aria-hidden="true">↓</span></a></div>
+        <div class="hero-note"><span class="mini-faces" aria-hidden="true"><b>·ᴗ·</b><b>−_−</b><b>ᵔ▽ᵔ</b></span><p>入会门槛：没有门槛。<br><span>带上你的好心情，或者坏心情。</span></p></div>
+      </div>
+      <div class="hero-art">
+        <div class="poster"><div class="poster-top"><span>神人集合 / VOL. 001</span><span aria-hidden="true">✳</span></div><img src="/assets/trio.webp" alt="粉色水滴鱼、白发精灵芙莉莲和黄色奶龙的同人插画" width="1536" height="1024" fetchpriority="high"><div class="poster-bottom"><span>不太正常，但很可爱。</span><span>03 MEMBERS ↗</span></div></div>
+        <span class="sticker sticker-top">全员到齐！</span><span class="sticker sticker-bottom">脑袋空空<br>快乐加倍</span><svg class="art-loop" viewBox="0 0 180 70" aria-hidden="true"><path d="M4 45C60-6 180 2 155 45S58 52 96 20s62 20 67 33m-17-8 18 11 9-21"/></svg>
+      </div>
+    </section>
+    <div class="ticker" aria-label="本站精神：允许发呆、允许慢慢来、允许快乐"><div class="wrap ticker-inner"><span>允许发呆</span><b aria-hidden="true">✳</b><span>允许慢慢来</span><b aria-hidden="true">✳</b><span>允许快乐</span><b aria-hidden="true">✳</b><span>禁止不开心太久</span><b aria-hidden="true">✳</b></div></div>
+    <section class="members wrap" id="members" aria-labelledby="members-title">
+      <div class="section-heading"><div><p class="section-kicker">MEET THE MEMBERS</p><h2 id="members-title">各有各的<span class="underlined">神。</span></h2></div><p>物种不同，<br>但都不想上班。</p></div>
+      <div class="member-grid">
+        <article class="member fish"><div class="portrait"><img src="/assets/trio.webp" alt="水滴鱼：粉色身体、下垂的大鼻子和一脸无奈的表情" width="1536" height="1024" loading="lazy"><span class="member-number">01 / 深海躺平组</span><span class="portrait-tag">就这样吧</span></div><div class="member-body"><div class="member-title"><h3>水滴鱼</h3><span>BLOBFISH</span></div><p class="bio">脸上写着“随便”，心里也是“随便”。<br>不争不抢，主打一个顺其自然。</p><div class="quote" id="quote-fish" aria-live="polite">“别问，问就是在深度思考。”</div><button class="member-button" data-member="fish">听鱼说一句 <span aria-hidden="true">↗</span></button></div></article>
+        <article class="member elf"><div class="portrait"><img src="/assets/trio.webp" alt="芙莉莲：白色双马尾、尖尖的精灵耳朵，手持魔法杖" width="1536" height="1024" loading="lazy"><span class="member-number">02 / 千年慢悠悠组</span><span class="portrait-tag">再睡五分钟</span></div><div class="member-body"><div class="member-title"><h3>芙莉莲</h3><span>FRIEREN</span></div><p class="bio">时间很多，表情很少。<br>遇到宝箱，理智偶尔会掉线。</p><div class="quote" id="quote-elf" aria-live="polite">“才等了十分钟，很快啊。”</div><button class="member-button" data-member="elf">听精灵说一句 <span aria-hidden="true">↗</span></button></div></article>
+        <article class="member dragon"><div class="portrait"><img src="/assets/trio.webp" alt="奶龙：圆滚滚的黄色小恐龙，开心地挥着小手" width="1536" height="1024" loading="lazy"><span class="member-number">03 / 快乐干饭组</span><span class="portrait-tag">先吃再说</span></div><div class="member-body"><div class="member-title"><h3>奶龙</h3><span>NAILONG</span></div><p class="bio">快乐是圆的，肚子也是。<br>天大的事，吃饱了再想。</p><div class="quote" id="quote-dragon" aria-live="polite">“我有一个成熟的想法：开饭！”</div><button class="member-button" data-member="dragon">听龙说一句 <span aria-hidden="true">↗</span></button></div></article>
+      </div>
+      <p class="fan-note">人物介绍与台词为本站趣味二创，插画为 AI 生成同人图。</p>
+    </section>
+    <section class="theater wrap" id="theater" aria-labelledby="theater-title">
+      <div class="theater-side"><p class="section-kicker">VERY NORMAL THEATER</p><h2 id="theater-title">三个神人，<br>一台好戏。</h2><p>如果他们生活在一起，<br>画风大概是这样的。</p><span class="theater-doodle" aria-hidden="true">( •̀ ω •́ ) ✧</span></div>
+      <div class="scene-panel"><div class="scene-tabs" role="tablist" aria-label="小剧场场景"><button id="tab-break" role="tab" aria-selected="true" aria-controls="scene" tabindex="0" data-scene="break">一起摸鱼</button><button id="tab-chest" role="tab" aria-selected="false" aria-controls="scene" tabindex="-1" data-scene="chest">发现宝箱</button><button id="tab-meal" role="tab" aria-selected="false" aria-controls="scene" tabindex="-1" data-scene="meal">到饭点了</button></div><div id="scene" role="tabpanel" aria-labelledby="tab-break" tabindex="0"><p class="scene-setting" id="scene-setting">一个平平无奇的下午，大家决定什么也不做。</p><div class="dialogue" id="dialogue" aria-live="polite"></div></div><div class="scene-footer"><span>纯属脑洞 · 请勿认真</span><button id="next-scene" aria-label="切换到下一个小剧场场景">下一幕 <span aria-hidden="true">→</span></button></div></div>
+    </section>
+    <div class="closing wrap"><span aria-hidden="true">✳</span><p>世界很大，<strong>偶尔神一下也没关系。</strong></p><a href="#" aria-label="回到页面顶部">回到顶部 ↑</a></div>
+  </main>
+  <footer class="footer wrap"><a class="footer-brand" href="#">神人俱乐部 <span>© 2026</span></a><p>非官方趣味同人小站 · 角色版权归各自权利方所有</p><a href="https://lernicks.cn">LERNICKS ↗</a></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden><span class="toast-icon" aria-hidden="true">✳</span><div><strong id="toast-name"></strong><p id="toast-line"></p></div><button id="toast-close" aria-label="关闭提示">×</button></div>
+</body>
+</html>
