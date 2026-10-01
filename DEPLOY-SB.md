@@ -11,13 +11,17 @@
 
 - 包：`deploy/sb-20261001.tar.gz`，只含 `sb/` 六个程序与图片文件、`nginx-sb.conf`。
 - 包 SHA-256：`a3b2cc57fa6ae6afb35f605c3a4b9bda6fe0a3f7d11907b04c0ce1f8fde400fe`。
-- 安装器：`deploy/install-sb-20261001.sh`；SHA-256：`77f28807a21d90a664b19605fde6fa8f31322f10926eb3939c92bd52a6837d60`。
+- 安装器：`deploy/install-sb-20261001.sh`；SHA-256：`bc2babad6600674f9e71a6de4d36f70d36a0dad452e10c9b35fafb85bbe8499a`。
 - 安装器内置包哈希；先检查端口和现有进程，再备份已知文件，安装并验证页面、资源、健康接口和域名转发。失败恢复本次修改；已有域名配置不覆盖。
 - 备份：`/root/sb-code-backup-*`，权限 700；PM2 原始信息只保存于服务器私密备份目录。
 - 本地运行：`node sb-site/server.js`，打开 `http://127.0.0.1:1155`。
 - 验证：`node tests/sb.integration.cjs`；语法检查 `node --check` 与 `bash -n`。
 - 浏览器验证：桌面、390px 与 320px 手机布局、插画加载、三人台词切换、随机提示、场景切换与左右键操作。
 - 仅在服务器实际执行并验证公网结果后，才能认定线上部署完成。
+
+## WebShell 环境修复（2026-10-01）
+
+修正安装器遗漏的 nvm 自动载入：缺少 Node 或 PM2 时读取 `${NVM_DIR:-/root/.nvm}/nvm.sh`，选择已安装的默认 Node，必要时退回已有最新 Node。只载入已有安装，不下载或安装新运行环境。`bash tests/sb-bootstrap.sh` 验证缺少 Node、缺少 PM2、已载入环境、默认别名缺失及严格模式恢复。原错误发生在安装前，未修改站点。
 
 ## WebShell 安装
 
@@ -26,7 +30,7 @@
 ```bash
 SB_COMMIT='75ed753117832fbfbad658258eb2b9a9558951d7'
 curl -fL --retry 3 --max-time 180 -o /tmp/sb-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@$SB_COMMIT/deploy/install-sb-20261001.sh" &&
-echo '77f28807a21d90a664b19605fde6fa8f31322f10926eb3939c92bd52a6837d60  /tmp/sb-install.sh' | sha256sum -c - &&
+echo 'bc2babad6600674f9e71a6de4d36f70d36a0dad452e10c9b35fafb85bbe8499a  /tmp/sb-install.sh' | sha256sum -c - &&
 bash /tmp/sb-install.sh "$SB_COMMIT"
 ```
 

@@ -4,6 +4,17 @@ COMMIT="${1:?请提供固定发布提交}"
 [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo '提交编号不正确'; exit 1; }
 BASE="https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@$COMMIT"
 EXPECTED='a3b2cc57fa6ae6afb35f605c3a4b9bda6fe0a3f7d11907b04c0ce1f8fde400fe'
+# WebShell 的非交互 Bash 不会自动执行 .bashrc，先载入服务器已有 nvm。
+if ! command -v node >/dev/null || ! command -v pm2 >/dev/null; then
+  SB_NVM_DIR="${NVM_DIR:-/root/.nvm}"
+  if test -s "$SB_NVM_DIR/nvm.sh"; then
+    # nvm 初始化可能读取未设置的变量；只在载入期间关闭 nounset。
+    set +u
+    . "$SB_NVM_DIR/nvm.sh" --no-use
+    set -u
+    nvm use --silent default >/dev/null 2>&1 || nvm use --silent node >/dev/null 2>&1 || true
+  fi
+fi
 for tool in node pm2 curl tar nginx sha256sum cmp; do command -v "$tool" >/dev/null || { echo "缺少 $tool；请先载入既有 nvm/PM2 环境。"; exit 1; }; done
 test "$(id -u)" = 0 || { echo '请用服务器 root 的 WebShell 执行'; exit 1; }
 TARGET=/root/sb
