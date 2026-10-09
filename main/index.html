@@ -496,6 +496,256 @@ html.astra .ca-user{background:var(--bg);border-color:var(--line);border-radius:
 
 </script>
 <!-- ASTRA HEAD END -->
+<!-- FOLIO START -->
+<style id="folio-style">
+/* Folio · 2026-10. Scoped to the four public tools and their existing new theme. */
+.folio-only{display:none!important}
+html.astra[data-folio] .folio-only{display:block!important}
+html.astra[data-folio]{--bg:#f7f6f2;--panel:#fffefa;--text:#252822;--muted:#6d7168;--line:#dedfd5;--article:#363a32;--a-paper:#fffefa;--a-soft:#eeeee6;--a-ink:#252822;--a-accent:#b34c2b;--a-on-accent:#fff;--f-accent:#b34c2b;--f-tint:#f4e8df;--f-serif:Georgia,"Noto Serif SC","Songti SC",SimSun,serif;--red:#a63e36;--status:#397052;color-scheme:light}
+html.astra[data-folio="tbl"]{--a-accent:#356c53;--f-accent:#356c53;--f-tint:#e8eee5}
+html.astra:is([data-folio="mk"],[data-folio="document"]){--a-accent:#70538c;--f-accent:#70538c;--f-tint:#eee8f1}
+html.astra[data-folio] body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.7}
+html.astra[data-folio] ::selection{background:var(--f-tint);color:var(--text)}
+html.astra[data-folio] :is(.page,.app){width:min(1180px,calc(100% - 80px));padding:28px 0 30px}
+html.astra[data-folio] :is(.topbar,.topnav){padding:0 0 24px;border-bottom:1px solid var(--line);gap:20px;flex-wrap:wrap}
+html.astra[data-folio] .brand{gap:12px}
+html.astra[data-folio] :is(.brand h1,.brand strong){font-size:18px;font-weight:650;letter-spacing:-.04em}
+html.astra[data-folio] :is(.mark,.logo){border-radius:50%;width:42px;height:42px;flex-basis:42px;background:var(--text);font:italic 24px var(--f-serif);color:var(--bg)}
+html.astra[data-folio] .logo{font:600 17px/1 "Segoe UI",sans-serif}
+html.astra[data-folio] :is(.brand p,.brand span){font:10px/1.5 Consolas,monospace;letter-spacing:.13em;color:var(--muted)}
+html.astra[data-folio] :is(.top-actions,.astra-header-actions){gap:12px}
+html.astra[data-folio] :is(.nav-btn,.home,.home-link){background:transparent;border:0;padding:8px 0;font-size:13px;color:var(--muted);text-decoration:none}
+html.astra[data-folio] :is(.nav-btn,.home,.home-link):hover{color:var(--f-accent);background:transparent}
+html.astra[data-folio] .design-switch{font-size:11px;gap:6px;color:var(--muted)}
+html.astra[data-folio] .design-switch select{font-size:12px;min-height:34px;border-radius:6px;background:transparent;padding:6px 24px 6px 8px;border-color:var(--line)}
+html.astra[data-folio] .folio-nav{display:flex!important;gap:22px;align-items:center;margin-left:auto}
+html.astra[data-folio] .folio-nav a{font-size:13px;text-decoration:none;color:var(--muted);white-space:nowrap}
+html.astra[data-folio] .folio-nav a:hover,html.astra[data-folio] .folio-nav a[aria-current="page"]{color:var(--f-accent)}
+html.astra[data-folio] .folio-nav a[aria-current="page"]:before{content:"";display:inline-block;width:5px;height:5px;background:var(--f-accent);border-radius:50%;margin-right:7px;vertical-align:middle}
+html.astra[data-folio] .eyebrow{color:var(--f-accent);font:11px/1.6 Consolas,monospace;letter-spacing:.16em}
+html.astra[data-folio] .hero{padding:45px 0 28px;text-align:left}
+html.astra[data-folio] .hero h2{font-size:clamp(30px,3.5vw,44px);font-weight:600;letter-spacing:-.065em;line-height:1.3;margin:14px 0}
+html.astra[data-folio] .hero p{font-size:14px;max-width:650px;line-height:1.9;color:var(--muted)}
+html.astra[data-folio] :is(.panel,.feedback-panel,.editor,.key-gate){border:1px solid var(--line);background:var(--a-paper);border-radius:12px;box-shadow:0 3px 0 #25282203}
+html.astra[data-folio] :is(.btn,.file-button,.preview-toggle,.copy-row button){border-radius:7px;background:transparent;border-color:var(--line);color:var(--text);font-size:13px;min-height:40px}
+html.astra[data-folio] :is(.btn.primary,.create-button,.submit-btn,.choose,.preview-toggle.active){background:var(--f-accent);color:#fff;border-radius:7px;border-color:var(--f-accent);font-weight:600;box-shadow:none}
+html.astra[data-folio] :is(.btn.primary,.create-button,.submit-btn,.choose,.go-btn):hover{filter:brightness(.92)}
+html.astra[data-folio] :is(.btn.danger,.btn-danger){background:transparent;color:var(--red);border-color:#dfb9b3}
+html.astra[data-folio] :is(.field,.title-input,.admin-key-input,.copy-row input,.feedback-form input,.feedback-form textarea){color:var(--text);background:var(--a-paper);border-color:var(--line);border-radius:7px}
+html.astra[data-folio] :is(.meter,.progress){background:var(--a-soft)}
+html.astra[data-folio] :is(.meter i,.progress-bar){background:var(--f-accent)}
+html.astra[data-folio] :is(.info,.capacity){padding:24px}
+html.astra[data-folio] .side{gap:16px}
+html.astra[data-folio] .side,html.astra[data-folio] .side>*{min-width:0}
+html.astra[data-folio] :is(.tip,.rule)>div{min-width:0;overflow-wrap:anywhere}
+html.astra[data-folio] .side .capacity-head{flex-wrap:wrap;gap:8px}
+html.astra[data-folio] :is(.rule-icon,.tip i){color:var(--f-accent);background:var(--f-tint);border:0;border-radius:50%;box-shadow:none}
+html.astra[data-folio] :is(.info h3,.capacity-head strong,.history h3){font-size:15px;font-weight:600}
+html.astra[data-folio] .mode-badge{color:var(--f-accent);background:var(--f-tint);border:0;font-size:11px;padding:5px 9px;border-radius:5px}
+html.astra[data-folio] .key-warning{background:#f6efdb;border-color:#e4d9bb;color:#705e2c}
+html.astra[data-folio] footer{font-size:11px;padding-top:22px;margin-top:40px;color:var(--muted);letter-spacing:.025em}
+/* Main: an editorial opening, handmade paper specimens, and three equal entries. */
+html.astra[data-folio="main"] .hero{padding:60px 0 50px;min-height:350px;display:grid;grid-template-columns:1.15fr 1fr;column-gap:36px;align-content:center}
+html.astra[data-folio="main"] .hero>.eyebrow{grid-column:1;align-self:end}
+html.astra[data-folio="main"] .hero h2{grid-column:1;font-size:clamp(40px,4.8vw,64px);font-weight:600;line-height:1.22;letter-spacing:-.065em;margin:20px 0;max-width:650px}
+html.astra[data-folio="main"] .hero p{grid-column:1;max-width:470px;font-size:14px}
+html.astra[data-folio="main"] .folio-hero-art{grid-column:2;grid-row:1/4;align-self:center;justify-self:end;width:min(100%,470px);color:var(--text)}
+.folio-hero-art svg{display:block;width:100%;height:auto}
+html.astra[data-folio="main"] .folio-section-label{display:flex!important;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font:10px/1.6 Consolas,monospace;letter-spacing:.12em}
+html.astra[data-folio="main"] .folio-section-label strong{font:500 13px/1.6 "Microsoft YaHei",sans-serif;letter-spacing:0;color:var(--text)}
+html.astra[data-folio="main"] .sites{gap:22px;grid-template-columns:repeat(3,minmax(0,1fr))}
+html.astra[data-folio="main"] .card{--f-card:#b34c2b;--f-card-bg:#f0e4d7;min-height:382px;background:var(--a-paper);border:1px solid var(--line);border-radius:12px;padding:12px 12px 64px;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s}
+html.astra[data-folio="main"] .card.image{--f-card:#356c53;--f-card-bg:#e3eadf}
+html.astra[data-folio="main"] .card.document{--f-card:#70538c;--f-card-bg:#e9e4ed}
+html.astra[data-folio="main"] .card:hover{border-color:var(--f-card);transform:translateY(-4px);box-shadow:0 12px 25px #25282209}
+html.astra[data-folio="main"] .astra-specimen{height:162px;border-radius:7px;background:var(--f-card-bg);color:var(--text);background-image:radial-gradient(#25282218 .7px,transparent .7px);background-size:10px 10px}
+html.astra[data-folio="main"] .spec-sheet{background:#fffefa;width:68%;font-size:12px;line-height:1.8;padding:17px 22px;box-shadow:3px 5px 0 #2528220a;transform:rotate(-7deg)}
+html.astra[data-folio="main"] .spec-sheet small{color:var(--f-card);font-size:9px;margin-bottom:8px;padding-bottom:5px;border-color:var(--line)}
+html.astra[data-folio="main"] .spec-line{background:#e6ded3;margin-top:9px}
+html.astra[data-folio="main"] .document .spec-sheet{transform:rotate(6deg);font-family:var(--f-serif)}
+html.astra[data-folio="main"] .spec-formula{font-size:26px;color:var(--f-card)}
+html.astra[data-folio="main"] .spec-photo{height:116px;border:6px solid #fffefa;background:#c4d4c2;transform:rotate(-6deg);box-shadow:3px 5px 0 #2528220a}
+html.astra[data-folio="main"] .spec-photo:before{background:#7fa17b;bottom:-87px}
+html.astra[data-folio="main"] .spec-photo:after{background:#456d54;bottom:-112px}
+html.astra[data-folio="main"] .spec-file{bottom:17px;right:17px;background:#fffefa;color:#356c53}
+html.astra[data-folio="main"] .card .number{display:block;font:9px/1.5 Consolas,monospace;color:var(--f-card);margin:20px 12px 0;letter-spacing:.08em}
+html.astra[data-folio="main"] .card h3{font-size:21px;margin:8px 12px 9px;letter-spacing:-.045em;font-weight:600}
+html.astra[data-folio="main"] .card p{font-size:12px;line-height:1.85;margin:0 12px}
+html.astra[data-folio="main"] .card>p:not(.folio-copy){display:none}
+html.astra[data-folio="main"] .enter{left:24px;right:24px;bottom:18px;color:var(--f-card);font-size:12px}
+html.astra[data-folio="main"] .arrow{width:29px;height:29px;background:var(--f-card-bg);color:var(--f-card);border-radius:50%}
+html.astra[data-folio="main"] .small-note{margin:22px 0 0;font-size:11px}
+/* Upload: a large calm drop target with the rules in a compact side column. */
+html.astra[data-folio="tbl"] .workspace{grid-template-columns:minmax(0,1fr) 288px;gap:22px}
+html.astra[data-folio="tbl"] .upload-panel{padding:16px}
+html.astra[data-folio="tbl"] .drop-zone{border:1px dashed #afbfaa;border-radius:8px;min-height:325px;background:var(--f-tint);background-image:radial-gradient(#356c531a .7px,transparent .7px);background-size:12px 12px;display:flex;align-items:center;justify-content:center;padding:28px}
+html.astra[data-folio="tbl"] .drop-zone:is(:hover,.dragover){border-color:var(--f-accent);background-color:#dfe9dc}
+html.astra[data-folio="tbl"] .upload-icon{border:1px solid #afbfaa;border-radius:50%;width:58px;height:58px;font-size:27px;background:var(--a-paper);color:var(--f-accent);margin:0 auto 18px;transform:none}
+html.astra[data-folio="tbl"] .drop-zone h3{font-size:23px;font-weight:600;letter-spacing:-.04em}
+html.astra[data-folio="tbl"] .drop-zone p{font-size:12px}
+html.astra[data-folio="tbl"] .choose{display:inline-block;margin-top:8px;padding:10px 26px;font-size:13px}
+html.astra[data-folio="tbl"] .admin-key-box{padding:20px 6px 6px;margin-top:6px}
+html.astra[data-folio="tbl"] .history{padding:24px;margin-top:26px}
+html.astra[data-folio="tbl"] .history-item{background:var(--f-tint);border-radius:8px}
+html.astra[data-folio="tbl"] .result-preview{border-radius:7px}
+/* Compose and read: typography carries the design; mixed content stays intact. */
+html.astra[data-folio="mk"] .editor-shell{grid-template-columns:minmax(0,1fr) 288px;gap:22px}
+html.astra[data-folio="mk"] .editor{padding:26px}
+html.astra[data-folio="mk"] .title-input{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;font-size:24px;font-weight:500;padding:10px 0 16px}
+html.astra[data-folio="mk"] .field-label{font-size:11px;line-height:1.8}
+html.astra[data-folio="mk"] .content-input{background:#faf9f6;border:1px solid var(--line);border-radius:8px;min-height:340px;font:14px/1.95 Consolas,"Microsoft YaHei",monospace;padding:22px;color:var(--text)}
+html.astra[data-folio="mk"] .mode-row{margin:16px 0 22px}
+html.astra[data-folio="mk"] .compose-preview{background:var(--a-paper);border-color:var(--line);border-radius:8px}
+html.astra[data-folio="mk"] .editor-foot{padding-top:20px}
+html.astra[data-folio="mk"] .create-button{font-size:13px;padding:12px 22px}
+html.astra[data-folio="document"] .page,html.astra[data-folio="document"] body.reader-mode .page{width:min(1060px,calc(100% - 64px))}
+html.astra[data-folio="document"] .document-head{padding:46px 0 26px}
+html.astra[data-folio="document"] .document-head h1{font-family:var(--f-serif);font-size:clamp(28px,3.8vw,44px);font-weight:600;letter-spacing:-.025em}
+html.astra[data-folio="document"] .article{background:var(--a-paper);border:1px solid var(--line);border-radius:10px;padding:42px clamp(22px,5vw,68px);font-size:16px;line-height:2;color:var(--article)}
+html.astra[data-folio] :is(.article pre,.article code,.compose-preview pre,.compose-preview code){background:var(--a-soft);color:#484e43;border-color:var(--line)}
+html.astra[data-folio] .article blockquote{border-color:var(--f-accent);background:var(--f-tint);color:var(--muted)}
+html.astra[data-folio] .tab.active{background:var(--f-tint);border-color:var(--f-accent);color:var(--f-accent)}
+html.astra[data-folio="document"] .chip{background:var(--f-tint);color:var(--f-accent);border:0}
+html.astra[data-folio="document"] .reader-tools{gap:14px;flex-wrap:wrap}
+html.astra[data-folio="document"] body.reader-mode .reader-tools{background:var(--bg);border:0;border-bottom:1px solid var(--line);border-radius:0;backdrop-filter:none;padding:12px 0;box-shadow:none}
+html.astra[data-folio="document"] .document-head .meta{justify-content:flex-start;color:var(--muted)}
+html.astra[data-folio="document"] .key-gate{padding:36px}
+html.astra[data-folio="document"] .key-icon{color:var(--f-accent);background:var(--f-tint)}
+html.astra[data-folio="document"] .content-field{background:#faf9f6;border-color:var(--line);color:var(--text)}
+html.astra[data-folio="document"] :is(.article.html-preview,.compose-preview.html-preview){padding:0;background:#fff}
+/* Notes: a letter on the desk, with its original two appearances still available. */
+html.astra[data-folio="note"]{--ink:#f7f6f2;--paper:#fffefa;--text-dark:#252822;--text-light:#252822;--teal:#b34c2b;--teal-dark:#943b20;--seal:#a63e36;--seal-dark:#89362f;--font-display:"Segoe UI","Microsoft YaHei",sans-serif}
+html.astra[data-folio="note"] .topnav{width:min(1180px,calc(100% - 80px));padding:28px 0 24px}
+html.astra[data-folio="note"] .topnav .brand{font-size:17px;letter-spacing:-.035em;white-space:nowrap}
+html.astra[data-folio="note"] .topnav .brand b{color:var(--text)}
+html.astra[data-folio="note"] .folio-note-brand{display:flex!important;align-items:center;gap:12px;font:600 17px "Segoe UI","Microsoft YaHei",sans-serif;letter-spacing:-.04em}
+html.astra[data-folio="note"] .folio-note-brand i{display:grid;place-items:center;border-radius:50%;width:42px;height:42px;background:var(--text);color:var(--bg);font:italic 24px var(--f-serif)}
+html.astra[data-folio="note"] .folio-note-brand>span{font:inherit;color:var(--text);letter-spacing:inherit}
+html.astra[data-folio="note"] .topnav>nav:not(.folio-nav){order:3;margin-left:0}
+html.astra[data-folio="note"] .topnav>.folio-nav{order:2;margin-left:auto}
+html.astra[data-folio="note"] .topnav nav{gap:20px;width:auto}
+html.astra[data-folio="note"] .topnav nav a{font-size:12px;color:var(--muted)}
+html.astra[data-folio="note"] .home-wrap{width:min(1180px,calc(100% - 80px));display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto;align-content:center;align-items:center;gap:0 80px;padding:95px 0 105px;position:relative;flex:1}
+html.astra[data-folio="note"] .telegram-title{grid-column:1;grid-row:1;text-align:left;font-size:clamp(32px,4.4vw,54px);font-weight:600;line-height:1.3;letter-spacing:-.07em;max-width:510px;margin:0 0 22px;align-self:end}
+html.astra[data-folio="note"] .telegram-sub{grid-column:1;grid-row:2;text-align:left;font-size:14px;line-height:1.9;max-width:390px;margin:0;align-self:start}
+html.astra[data-folio="note"] .home-hint{grid-column:1;grid-row:3;text-align:left;font-size:11px;line-height:1.8;max-width:390px;margin:32px 0 0;align-self:start}
+html.astra[data-folio="note"] .telegram-card{grid-column:2;grid-row:1/4;width:100%;max-width:490px;justify-self:end;padding:50px 34px 34px;border-radius:2px;transform:rotate(2deg);border-color:#e0d5c4;box-shadow:8px 10px 0 #e8e3d8;background:#fffefa;min-height:280px}
+html.astra[data-folio="note"] .telegram-card:before{content:"01 / A LITTLE LETTER";display:block;font:10px/1.5 Consolas,monospace;color:var(--f-accent);letter-spacing:.13em;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:24px}
+html.astra[data-folio="note"] .telegram-card:after{content:"L.";position:absolute;right:25px;top:18px;font:italic 24px/1.5 var(--f-serif);color:var(--f-accent)}
+html.astra[data-folio="note"] .telegram-card label{font-size:11px;margin-top:0}
+html.astra[data-folio="note"] .slug-input{font-size:17px;min-width:0;line-height:1.6;color:var(--text);border-color:#d6c5b0}
+html.astra[data-folio="note"] #randomBtn{background:var(--f-tint)!important;color:var(--f-accent)!important;min-height:40px;border-radius:6px!important;padding:8px 12px!important;font-size:12px!important}
+html.astra[data-folio="note"] .go-btn{background:var(--f-accent);border-radius:6px;letter-spacing:0;font:600 14px/1.5 "Segoe UI","Microsoft YaHei",sans-serif;padding:13px;color:#fff}
+html.astra[data-folio="note"] :is(.note-bar,.paper-page,.settings-panel){width:min(900px,calc(100% - 80px))}
+html.astra[data-folio="note"] .paper-page{border-radius:8px;border-color:var(--line);box-shadow:4px 6px 0 #e8e3d8}
+html.astra[data-folio="note"] .paper-page textarea{padding:38px 46px 48px;color:var(--text);font-size:17px;line-height:2}
+html.astra[data-folio="note"] .icon-btn{background:var(--a-paper);color:var(--text);border-color:var(--line);border-radius:6px;font-size:12px;min-height:40px}
+html.astra[data-folio="note"] .icon-btn.seal{color:var(--red);background:var(--a-paper)}
+html.astra[data-folio="note"] #destroyBtn{background:#f4e5e1!important;color:var(--red)}
+html.astra[data-folio="note"] .postmark{font-size:12px;color:var(--muted)}
+html.astra[data-folio="note"] .postmark .dot{background:var(--f-accent)}
+html.astra[data-folio="note"] .settings-panel{background:var(--a-paper);color:var(--text);border-color:var(--line);border-radius:8px}
+html.astra[data-folio="note"] .settings-panel .row{flex-wrap:wrap}
+html.astra[data-folio="note"] .settings-panel input[type=text]{min-width:0;background:var(--bg);color:var(--text);border-color:var(--line)}
+html.astra[data-folio="note"] .gate-card{border:1px solid var(--line);border-radius:10px;background:var(--a-paper);box-shadow:6px 8px 0 #e8e3d8}
+html.astra[data-folio="note"] .gate-card input{color:var(--text);border-color:var(--line)}
+html.astra[data-folio="note"] .wax-seal{background:var(--f-tint);color:var(--f-accent);border:1px solid var(--line);border-radius:50%}
+html.astra[data-folio="note"] .fb-card{border:1px solid var(--line);border-radius:10px;background:var(--a-paper);box-shadow:none}
+html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){color:var(--text);background:var(--a-paper);border-color:var(--line)}
+@media(max-width:1000px){
+ html.astra[data-folio] :is(.page,.app){width:calc(100% - 48px)}
+ html.astra[data-folio] .folio-nav{gap:14px}
+ html.astra[data-folio="main"] .hero{column-gap:10px;padding:45px 0 35px;min-height:310px}
+ html.astra[data-folio="main"] .hero h2{font-size:46px}
+ html.astra[data-folio="main"] .sites{gap:14px}
+ html.astra[data-folio="main"] .card h3{font-size:18px}
+ html.astra[data-folio="note"] :is(.topnav,.home-wrap){width:calc(100% - 48px)}
+ html.astra[data-folio="note"] .home-wrap{gap:0 40px}
+ html.astra[data-folio="note"] .telegram-card{padding:40px 25px 28px}
+}
+@media(max-width:760px){
+ html.astra[data-folio] :is(.page,.app){width:calc(100% - 36px);padding:20px 0 24px}
+ html.astra[data-folio] :is(.topbar,.topnav){gap:15px;padding-bottom:18px}
+ html.astra[data-folio] .folio-nav{order:3;width:100%;margin:0;gap:22px}
+ html.astra[data-folio] :is(.top-actions,.astra-header-actions){margin-left:auto;gap:10px}
+ html.astra[data-folio] :is(.brand h1,.brand strong){font-size:16px}
+ html.astra[data-folio] .hero{padding:32px 0 22px}
+ html.astra[data-folio="main"] .hero{grid-template-columns:1fr;padding:36px 0 28px;min-height:0}
+ html.astra[data-folio="main"] .hero h2{font-size:clamp(36px,8vw,50px);margin:16px 0}
+ html.astra[data-folio="main"] .folio-hero-art{grid-column:1;grid-row:auto;width:270px;justify-self:center;margin:14px 0 -5px}
+ html.astra[data-folio="main"] .sites{grid-template-columns:1fr;gap:18px}
+ html.astra[data-folio="main"] .card{min-height:360px}
+ html.astra[data-folio="main"] .card h3{font-size:22px}
+ html.astra[data-folio="main"] .astra-specimen{height:170px}
+ html.astra[data-folio="main"] .card p{font-size:13px}
+ html.astra[data-folio="main"] .folio-section-label span{display:none}
+ html.astra[data-folio="tbl"] .workspace,html.astra[data-folio="mk"] .editor-shell{grid-template-columns:1fr;gap:18px}
+ html.astra[data-folio="mk"] .editor{padding:20px}
+ html.astra[data-folio="mk"] .content-input{padding:16px;min-height:340px}
+ html.astra[data-folio="mk"] .mode-row{flex-wrap:wrap;gap:12px}
+ html.astra[data-folio="mk"] :is(.field-label,.editor-foot){flex-wrap:wrap;gap:10px}
+ html.astra[data-folio="mk"] .field-label #contentHint{flex:1;min-width:110px}
+ html.astra[data-folio="mk"] .preview-toggle{flex-shrink:0;white-space:nowrap}
+ html.astra[data-folio="mk"] .mode-badge{white-space:normal;max-width:100%}
+ html.astra[data-folio="mk"] .editor-shell>*{min-width:0}
+ html.astra[data-folio] :is(.copy-row,.key-row){flex-wrap:wrap}
+ html.astra[data-folio] .copy-row input{min-width:0}
+ html.astra[data-folio="document"] .page,html.astra[data-folio="document"] body.reader-mode .page{width:calc(100% - 32px)}
+ html.astra[data-folio="document"] .article{padding:26px 20px;overflow-wrap:anywhere}
+ html.astra[data-folio="document"] .reader-tools .right{flex-wrap:wrap}
+ html.astra[data-folio="document"] .key-gate{padding:28px 20px}
+ html.astra[data-folio="note"] .topnav{width:calc(100% - 36px);padding:20px 0 18px}
+ html.astra[data-folio="note"] .topnav nav{width:100%;justify-content:flex-start;gap:16px;flex-wrap:wrap}
+ html.astra[data-folio="note"] .topnav .folio-nav{width:auto;order:0;margin-left:auto}
+ html.astra[data-folio="note"] .topnav nav>.design-switch{margin-left:auto}
+ html.astra[data-folio="note"] .home-wrap{width:calc(100% - 40px);display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:46px 0 60px;gap:0}
+ html.astra[data-folio="note"] .telegram-title{font-size:36px;line-height:1.35;margin:0 0 18px;align-self:stretch}
+ html.astra[data-folio="note"] .telegram-sub{font-size:13px;margin:0 0 35px}
+ html.astra[data-folio="note"] .telegram-card{width:calc(100% - 6px);max-width:none;min-height:0;transform:rotate(1deg);padding:30px 24px;align-self:center}
+ html.astra[data-folio="note"] .home-hint{margin-top:30px;font-size:11px;order:4}
+ html.astra[data-folio="note"] :is(.note-bar,.paper-page,.settings-panel){width:calc(100% - 36px)}
+ html.astra[data-folio="note"] .paper-page textarea{padding:28px 24px 48px}
+ html.astra[data-folio="note"] .note-actions{flex-wrap:wrap;gap:7px}
+ html.astra[data-folio="note"] .slug-input{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){html.astra[data-folio] *,html.astra[data-folio] *:before,html.astra[data-folio] *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+</style>
+<script id="folio-design">
+/* Presentation only: never reads or writes note, document, account, or upload data. */
+(function(){
+ 'use strict';
+ var root=document.documentElement,site=root.getAttribute('data-astra-site');
+ if(['main','note','tbl','mk','document'].indexOf(site)<0)return;
+ root.setAttribute('data-folio',site);
+ var links=[['note','便签','https://note.lernicks.cn'],['tbl','图床','https://tbl.lernicks.cn'],['mk','文档','https://mk.lernicks.cn']];
+ var art='<svg viewBox="0 0 470 290" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="folio-dots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#c6c9ba"/></pattern></defs><ellipse cx="240" cy="152" rx="202" ry="123" fill="url(#folio-dots)"/><g transform="translate(259 51) rotate(9)"><rect x="5" y="7" width="155" height="184" rx="3" fill="#e5e0d8"/><rect width="155" height="184" rx="3" fill="#fffefa" stroke="#d8d5cd"/><path d="M20 37h115M20 111h115M20 130h92M20 149h105" stroke="#d8d5cd"/><text x="20" y="26" fill="#70538c" font-size="9" font-family="monospace">03 / DOCUMENT</text><text x="77" y="84" text-anchor="middle" fill="#70538c" font-size="27" font-family="Georgia" font-style="italic">E = mc²</text></g><g transform="translate(43 75) rotate(-10)"><rect x="5" y="7" width="165" height="156" rx="3" fill="#e5e0d8"/><rect width="165" height="156" rx="3" fill="#fffefa" stroke="#d8d5cd"/><text x="18" y="27" fill="#b34c2b" font-size="9" font-family="monospace">01 / A LITTLE NOTE</text><path d="M18 40h129M18 88h129M18 106h115M18 124h126" stroke="#d8d5cd"/><text x="18" y="70" fill="#474b40" font-size="14" font-family="Microsoft YaHei">把灵感留在这里。</text><circle cx="139" cy="16" r="10" fill="#f0e4d7"/><text x="135" y="20" font-size="12" fill="#b34c2b" font-family="Georgia" font-style="italic">L</text></g><g transform="translate(169 122) rotate(5)"><rect x="5" y="7" width="154" height="134" rx="3" fill="#d7d9cb"/><rect width="154" height="134" rx="3" fill="#fffefa" stroke="#d8d5cd"/><rect x="9" y="9" width="136" height="99" fill="#d1ddc9"/><circle cx="113" cy="33" r="13" fill="#f2dca6"/><path d="M9 108V83l37-36 55 61" fill="#91af86"/><path d="M46 108l59-60 40 29v31" fill="#4c7358"/><text x="15" y="123" fill="#356c53" font-size="8" font-family="monospace">02 / A MOMENT TO SHARE</text></g><path d="M97 33q20-13 37-2m-10-10 10 10-14 9M391 255q-15 18-37 14m10 10-10-10 13-8" fill="none" stroke="#a2a88f" stroke-width="1.5" stroke-linecap="round"/></svg>';
+ function enhance(){
+  var header=document.querySelector(site==='note'?'.topnav':'.topbar');
+  if(header&&!header.querySelector('.folio-nav')){
+   var nav=document.createElement('nav');nav.className='folio-nav folio-only';nav.setAttribute('aria-label','Lernicks 工具');
+   links.forEach(function(item){var a=document.createElement('a');a.href=item[2];a.textContent=item[1];if(site===item[0]||(site==='document'&&item[0]==='mk'))a.setAttribute('aria-current','page');nav.appendChild(a)});
+   var actions=header.querySelector('.top-actions,.astra-header-actions');header.insertBefore(nav,actions||null);
+  }
+  if(site==='main'){
+   var hero=document.querySelector('#homeView .hero');
+   if(hero&&!hero.querySelector('.folio-hero-art')){var drawing=document.createElement('div');drawing.className='folio-hero-art folio-only';drawing.setAttribute('aria-hidden','true');drawing.innerHTML=art;hero.appendChild(drawing)}
+   var title=document.getElementById('astra-main-title');if(title&&!title.hasAttribute('data-folio-title')){title.innerHTML='小小工具，<br>装下你的灵感。';title.setAttribute('data-folio-title','')}
+   var sites=document.querySelector('#homeView .sites');if(sites&&!document.querySelector('.folio-section-label')){var label=document.createElement('div');label.className='folio-section-label folio-only';label.innerHTML='<strong>从这里，开始一件小事</strong><span>THE EVERYDAY COLLECTION / 01—03</span>';sites.before(label)}
+   [['note','便签电报','给一段话起个名字。随写随存，用链接分享，也可以设置访问密码。'],['image','公共图床','拖入或粘贴一张图片。获取直链，让眼前的画面出现在任何地方。'],['document','混合文档','把文字、公式和 HTML 写在同一页。认真排版，轻松分享。']].forEach(function(item){var card=document.querySelector('.card.'+item[0]);if(card&&!card.querySelector('.folio-copy')){var heading=card.querySelector('h3 .astra-only');if(heading)heading.textContent=item[1];var p=document.createElement('p');p.className='folio-copy folio-only';p.textContent=item[2];var old=card.querySelector('p');if(old)old.after(p)}});
+  }
+  if(site==='note'){
+   var noteTitle=document.querySelector('.telegram-title');if(noteTitle&&!noteTitle.hasAttribute('data-folio-title')){var original=noteTitle.textContent;noteTitle.innerHTML='';var old=document.createElement('span');old.className='legacy-only';old.textContent=original;noteTitle.appendChild(old);var fresh=document.createElement('span');fresh.className='folio-only';fresh.innerHTML='写点什么，<br>给需要的人。';noteTitle.appendChild(fresh);noteTitle.setAttribute('data-folio-title','')}
+   var brand=header&&header.querySelector('.brand');if(brand&&!brand.querySelector('.folio-note-brand')){var oldBrand=document.createElement('span');oldBrand.className='legacy-only';while(brand.firstChild)oldBrand.appendChild(brand.firstChild);brand.appendChild(oldBrand);var newBrand=document.createElement('span');newBrand.className='folio-note-brand folio-only';newBrand.innerHTML='<i aria-hidden="true">L.</i><span>便签电报</span>';brand.appendChild(newBrand)}
+  }
+  var meta=document.querySelector('meta[name="theme-color"]');if(meta&&root.classList.contains('astra'))meta.content='#f7f6f2';
+ }
+ document.addEventListener('DOMContentLoaded',function(){enhance();if(site==='note'){var app=document.getElementById('app');if(app)new MutationObserver(enhance).observe(app,{childList:true,subtree:true})}});
+ window.addEventListener('lernicks-design-change',enhance);
+})();
+
+</script>
+<!-- FOLIO END -->
 </head>
 <body>
   <div class="page">
