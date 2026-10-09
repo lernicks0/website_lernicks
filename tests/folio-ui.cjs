@@ -26,7 +26,7 @@ function contrast(a,b){function l(s){return s.match(/[\d.]+/g).slice(0,3).map(Nu
    return route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
   }
   if(p==='/sample.png')return route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6S5kAAAAASUVORK5CYII=','base64')});
-  if(p==='/html-support.js'||p==='/purify.min.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(root,'mk-site',p.slice(1)))});
+  if(p==='/html-support.js'||p==='/purify.min.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(root,path.dirname(files.mk),p.slice(1)))});
   const site=p.startsWith('/d/')?'document':p.split('/')[1]||'main';
   if(!files[site])return route.fulfill({status:404});
   return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(root,files[site]),'utf8')});

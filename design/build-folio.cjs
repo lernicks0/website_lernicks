@@ -1,5 +1,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
-const pages=[['main','main-site/index.html'],['note','note-site/index.html'],['tbl','tbl-site/index.html'],['mk','mk-site/index.html'],['document','mk-site/document.html']];
+const defaultRoot=path.resolve(process.env.FOLIO_BUILD_ROOT||path.join(__dirname,'..'));
+const repoLayout=!fs.existsSync(path.join(defaultRoot,'main-site/index.html'))&&fs.existsSync(path.join(defaultRoot,'main/index.html'));
+const pages=repoLayout?[['main','main/index.html'],['note','public/index.html'],['tbl','tbl/index.html'],['mk','mk/index.html'],['document','mk/document.html']]:[['main','main-site/index.html'],['note','note-site/index.html'],['tbl','tbl-site/index.html'],['mk','mk-site/index.html'],['document','mk-site/document.html']];
 const css=fs.readFileSync(path.join(__dirname,'folio.css'),'utf8'),js=fs.readFileSync(path.join(__dirname,'folio.js'),'utf8');
 new vm.Script(js);
 function strip(html){return html.replace(/<!-- FOLIO START -->[\s\S]*?<!-- FOLIO END -->\s*/g,'')}

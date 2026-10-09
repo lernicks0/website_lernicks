@@ -19,3 +19,15 @@ WebShell 当前可能以 ubuntu 登录，因此安装要用 `sudo bash`。安装
 成功输出：`FOLIO_DEPLOY_SUCCESS backup=/root/folio-code-backup-...`。
 
 本地浏览器与文档接口验证已通过。服务器安装尚未执行。
+
+代码与安装器已发布在 `master`，固定安装版本为 `070eb0f40fee3e827125789c1b03280c92d938fd`。
+
+在 WebShell 粘贴：
+
+```bash
+curl -fL --retry 3 --connect-timeout 15 --max-time 180 -o /tmp/folio-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@070eb0f40fee3e827125789c1b03280c92d938fd/deploy/install-folio-20261009.sh" &&
+echo '9b94646e28019883c6b7a679e7daa9b0be6d464c1c3d496fc51a27625f7fbca8  /tmp/folio-install.sh' | sha256sum -c - &&
+sudo bash /tmp/folio-install.sh
+```
+
+这个脚本已内嵌所需 CSS 和展示脚本，不再下载其他包。安装后刷新网页，在顶部选择“新版”即可看到新外观；已明确选择原版、经典或科技的浏览器继续保留其偏好。
