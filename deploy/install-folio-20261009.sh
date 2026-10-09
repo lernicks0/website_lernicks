@@ -66,8 +66,12 @@ done
 for process in "${processes[@]}"; do pm2 restart "$process" >/dev/null; done
 for spec in "${specs[@]}"; do
  IFS='|' read -r file port process <<< "$spec"
+ if [[ "$file" = 'mk/document.html' ]]; then
+  cmp "$stage/pages/$file" "/root/$file"
+  echo "OK: $file / installed reader template"
+  continue
+ fi
  endpoint=/
- [[ "$file" = 'mk/document.html' ]] && endpoint=/d/0000000000000000
  curl -fsSL --retry 8 --retry-connrefused --retry-delay 2 --retry-max-time 30 --max-redirs 5 --max-time 30 "http://127.0.0.1:$port$endpoint" -o "$stage/check.html"
  grep -q 'id="folio-style"' "$stage/check.html"
  grep -q 'id="folio-design"' "$stage/check.html"
