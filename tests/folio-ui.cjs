@@ -29,7 +29,9 @@ function contrast(a,b){function l(s){return s.match(/[\d.]+/g).slice(0,3).map(Nu
   if(p==='/html-support.js'||p==='/purify.min.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(root,path.dirname(files.mk),p.slice(1)))});
   const site=p.startsWith('/d/')?'document':p.split('/')[1]||'main';
   if(!files[site])return route.fulfill({status:404});
-  return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(root,files[site]),'utf8')});
+  let html=fs.readFileSync(path.join(root,files[site]),'utf8');
+  if(site==='main'&&url.searchParams.has('legacy'))html=html.replace('id="homeView"','id="legacyHome"');
+  return route.fulfill({contentType:'text/html',body:html});
  });
  const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
  for(const width of[1440,390,320]){
@@ -44,6 +46,12 @@ function contrast(a,b){function l(s){return s.match(/[\d.]+/g).slice(0,3).map(Nu
    assert.ok(contrast(metrics.bg,metrics.fg)>=7,`${site} low text contrast`);
    if(width!==320)await page.screenshot({path:path.join(out,`${site}-${width}.png`),fullPage:true});
   }
+ }
+ for(const width of[1440,390]){
+  await page.setViewportSize({width,height:844});await page.goto('http://folio.test/main/?legacy=1');
+  assert.equal(await page.locator('#homeView').count(),0);
+  assert.equal(await page.locator('.folio-hero-art').count(),1);assert.equal(await page.locator('.folio-section-label').count(),1);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
  await page.setViewportSize({width:390,height:844});
  await page.goto('http://folio.test/note/');await page.locator('#slugInput').fill('my-letter');

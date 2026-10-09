@@ -725,10 +725,10 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
    var actions=header.querySelector('.top-actions,.astra-header-actions');header.insertBefore(nav,actions||null);
   }
   if(site==='main'){
-   var hero=document.querySelector('#homeView .hero');
+   var hero=document.querySelector('.hero');
    if(hero&&!hero.querySelector('.folio-hero-art')){var drawing=document.createElement('div');drawing.className='folio-hero-art folio-only';drawing.setAttribute('aria-hidden','true');drawing.innerHTML=art;hero.appendChild(drawing)}
    var title=document.getElementById('astra-main-title');if(title&&!title.hasAttribute('data-folio-title')){title.innerHTML='小小工具，<br>装下你的灵感。';title.setAttribute('data-folio-title','')}
-   var sites=document.querySelector('#homeView .sites');if(sites&&!document.querySelector('.folio-section-label')){var label=document.createElement('div');label.className='folio-section-label folio-only';label.innerHTML='<strong>从这里，开始一件小事</strong><span>THE EVERYDAY COLLECTION / 01—03</span>';sites.before(label)}
+   var sites=document.querySelector('.sites');if(sites&&!document.querySelector('.folio-section-label')){var label=document.createElement('div');label.className='folio-section-label folio-only';label.innerHTML='<strong>从这里，开始一件小事</strong><span>THE EVERYDAY COLLECTION / 01—03</span>';sites.before(label)}
    [['note','便签电报','给一段话起个名字。随写随存，用链接分享，也可以设置访问密码。'],['image','公共图床','拖入或粘贴一张图片。获取直链，让眼前的画面出现在任何地方。'],['document','混合文档','把文字、公式和 HTML 写在同一页。认真排版，轻松分享。']].forEach(function(item){var card=document.querySelector('.card.'+item[0]);if(card&&!card.querySelector('.folio-copy')){var heading=card.querySelector('h3 .astra-only');if(heading)heading.textContent=item[1];var p=document.createElement('p');p.className='folio-copy folio-only';p.textContent=item[2];var old=card.querySelector('p');if(old)old.after(p)}});
   }
   if(site==='note'){
