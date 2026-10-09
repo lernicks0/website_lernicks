@@ -73,7 +73,7 @@ for spec in "\${specs[@]}"; do
  IFS='|' read -r file port process <<< "$spec"
  endpoint=/
  [[ "$file" = 'mk/document.html' ]] && endpoint=/d/0000000000000000
- curl -fsSL --max-redirs 5 --max-time 30 "http://127.0.0.1:$port$endpoint" -o "$stage/check.html"
+ curl -fsSL --retry 8 --retry-connrefused --retry-delay 2 --retry-max-time 30 --max-redirs 5 --max-time 30 "http://127.0.0.1:$port$endpoint" -o "$stage/check.html"
  grep -q 'id="folio-style"' "$stage/check.html"
  grep -q 'id="folio-design"' "$stage/check.html"
  echo "OK: $file / $port"
