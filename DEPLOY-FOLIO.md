@@ -18,15 +18,19 @@ WebShell 当前可能以 ubuntu 登录，因此安装要用 `sudo bash`。安装
 
 成功输出：`FOLIO_DEPLOY_SUCCESS backup=/root/folio-code-backup-...`。
 
-本地浏览器与文档接口验证已通过。服务器安装尚未执行。
+本地浏览器与文档接口验证已通过。2026-10-09 已通过腾讯云 OrcaTerm 以 ubuntu 登录、sudo 安装，四站进程实际重启并通过源站检查。最终成功备份：`/root/folio-code-backup-TvEGxE2C`。
 
-代码与安装器已发布在 `master`，固定安装版本为 `070eb0f40fee3e827125789c1b03280c92d938fd`。
+四个公网首页均返回 HTTP 200 并含新版样式与展示脚本；图床、文档状态接口返回 HTTP 200。浏览器已核实四站新版。没有写入、上传或删除真实业务内容。
+
+安装器已修正两处检查：进程重启后的端口检查支持短时重试；文档阅读页模板逐字比对已安装文件，不访问不存在的文档地址。此前两次失败均自动恢复页面。线上较早主页没有 homeView 容器，展示脚本已兼容，并增加桌面与手机回归检查。
+
+代码与安装器已发布在 `master`，最终已安装版本为 `55aeac75a4d688660604cee0417e88a0471532c1`。
 
 在 WebShell 粘贴：
 
 ```bash
-curl -fL --retry 3 --connect-timeout 15 --max-time 180 -o /tmp/folio-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@070eb0f40fee3e827125789c1b03280c92d938fd/deploy/install-folio-20261009.sh" &&
-echo '9b94646e28019883c6b7a679e7daa9b0be6d464c1c3d496fc51a27625f7fbca8  /tmp/folio-install.sh' | sha256sum -c - &&
+curl -fL --retry 3 --connect-timeout 15 --max-time 180 -o /tmp/folio-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@55aeac75a4d688660604cee0417e88a0471532c1/deploy/install-folio-20261009.sh" &&
+echo 'dfb338d8f4e8bc6aa6ba4909ff0eeb9748fd9e3706d49d05a3aa338ac0f3f54a  /tmp/folio-install.sh' | sha256sum -c - &&
 sudo bash /tmp/folio-install.sh
 ```
 
