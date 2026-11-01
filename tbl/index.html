@@ -744,6 +744,78 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
 
 </script>
 <!-- FOLIO END -->
+<style id="tbl-speed-style">.speed-options{margin:18px 0;padding:14px;border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.8}.speed-options label{display:flex;gap:9px;align-items:flex-start;cursor:pointer}.speed-options input{margin-top:5px;flex-shrink:0}.speed-options small{display:block;color:var(--muted);margin-left:22px}</style>
+<script id="tbl-speed-client">
+/* Browser-only image preparation. No third-party services or dependencies. */
+(function () {
+  'use strict';
+  async function staticImage(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return true;
+    if (bytes.length < 8 || bytes.slice(0, 8).join(',') !== '137,80,78,71,13,10,26,10') return false;
+    const view = new DataView(bytes.buffer);
+    for (let offset = 8; offset + 12 <= bytes.length;) {
+      const length = view.getUint32(offset);
+      if (offset + length + 12 > bytes.length) return false;
+      const type = String.fromCharCode(...bytes.slice(offset + 4, offset + 8));
+      if (type === 'acTL') return false; // APNG must retain every animation frame.
+      if (type === 'IEND') return true;
+      offset += length + 12;
+    }
+    return false;
+  }
+  function decode(file) {
+    return new Promise((resolve, reject) => {
+      const image = new Image(), url = URL.createObjectURL(file);
+      const timer = setTimeout(() => finish(new Error('decode timeout')), 8000);
+      function finish(error) {
+        clearTimeout(timer); image.onload = image.onerror = null; URL.revokeObjectURL(url);
+        if (error) reject(error); else resolve(image);
+      }
+      image.onload = () => finish(); image.onerror = () => finish(new Error('decode failed')); image.src = url;
+    });
+  }
+  function canvasFor(image, limit) {
+    const scale = Math.min(1, limit / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+  async function prepare(file, compress) {
+    const result = { file, thumbnail: '' };
+    try {
+      if (!await staticImage(file)) return result;
+      const image = await decode(file);
+      if (!image.naturalWidth || image.naturalWidth * image.naturalHeight > 32000000) return result;
+      const thumbnail = canvasFor(image, 80).toDataURL('image/webp', 0.65);
+      if (thumbnail.length <= 16000) result.thumbnail = thumbnail;
+      if (!compress || file.size < 256 * 1024) return result;
+      const canvas = canvasFor(image, 2560);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.85));
+      if (blob && blob.type === 'image/webp' && blob.size < file.size * 0.9) {
+        result.file = new File([blob], (file.name || 'image').replace(/\.[^.]+$/, '') + '.webp', { type: blob.type });
+      }
+      canvas.width = canvas.height = 1;
+    } catch (_) { /* Unsupported or damaged images use the original upload path. */ }
+    return result;
+  }
+  function historyThumbnail(item) {
+    // Old history deliberately gets a placeholder: never fetch a full original just for an icon.
+    if (typeof item.thumbnail === 'string' && item.thumbnail.length <= 16000
+        && /^data:image\/(?:webp|png|jpeg);base64,[a-z0-9+/=]+$/i.test(item.thumbnail)) {
+      const image = document.createElement('img');
+      image.width = image.height = 48; image.decoding = 'async'; image.loading = 'lazy';
+      image.src = item.thumbnail; image.alt = ''; return image;
+    }
+    const icon = document.createElement('div'); icon.className = 'history-thumb';
+    icon.textContent = item.kind === 'video' ? '▶' : item.kind === 'file' ? '⇩' : '▧';
+    icon.title = '点击文件链接查看原图或文件'; return icon;
+  }
+  window.TblSpeed = { prepare, historyThumbnail };
+})();
+</script>
 </head>
 <body>
   <div class="page">
@@ -770,7 +842,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
           </div>
           <div id="preview" class="preview">
             <img id="previewImage" class="preview-image" alt="准备上传的图片">
-            <video id="previewVideo" class="preview-video" controls></video>
+            <video id="previewVideo" class="preview-video" controls preload="metadata"></video>
             <div id="previewFile" class="file-symbol">FILE</div>
             <div id="fileName" class="file-name"></div>
             <div id="fileMeta" class="file-meta"></div>
@@ -781,6 +853,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
             <div id="progress" class="progress"><div id="progressBar" class="progress-bar"></div></div>
           </div>
         </div>
+        <div class="speed-options"><label><input id="smartCompress" type="checkbox" checked><span>图片加速：压缩 JPEG / 静态 PNG，长边最多 2560 像素</span></label><small>会转为 WebP，可能损失细节；取消勾选保留原文件。GIF、动态 PNG、已有 WebP 和其他文件保持原样。</small></div>
         <div class="admin-key-box"><label for="adminKeyInput">管理员文件模式（可选）</label><input id="adminKeyInput" class="admin-key-input" type="password" autocomplete="off" placeholder="普通图片无需填写，其他文件请输入管理员密钥"><small>密钥只用于本次上传的服务器校验，不保存在浏览器历史中。</small></div>
       </section>
 
@@ -802,7 +875,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     <section id="result" class="panel result">
       <div class="result-head"><div class="success"><i>✓</i> 上传成功</div><button class="btn" type="button" onclick="resetUploader()">继续上传</button></div>
       <img id="resultPreview" class="result-preview" alt="已上传图片">
-      <video id="resultVideo" class="result-video" controls></video>
+      <video id="resultVideo" class="result-video" controls preload="none"></video>
       <div id="resultFile" class="file-symbol">FILE</div>
       <div class="copy-row"><label>文件直链</label><input id="directLink" readonly><button type="button" onclick="copyField('directLink')">复制</button></div>
       <div class="copy-row"><label>Markdown</label><input id="markdownLink" readonly><button type="button" onclick="copyField('markdownLink')">复制</button></div>
@@ -825,7 +898,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
   <script>
     const MAX_FILE_BYTES=10*1024*1024;
     const HISTORY_KEY='lernicks_tbl_uploads_v1';
-    let selectedFile=null,previewObjectUrl='',uploading=false,currentUpload=null;
+    let selectedFile=null,previewObjectUrl='',resultObjectUrl='',uploading=false,currentUpload=null;
     const dropZone=document.getElementById('dropZone');
     const fileInput=document.getElementById('fileInput');
     const adminKeyInput=document.getElementById('adminKeyInput');
@@ -835,7 +908,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     function htmlAttribute(value){return String(value).replace(/[&"<>]/g,character=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[character]))}
     function toast(message,bad=false){const el=document.getElementById('toast');el.textContent=message;el.className='toast show'+(bad?' bad':'');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.className='toast',2400)}
     function safeHistory(){try{const value=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(value)?value:[]}catch(_){return[]}}
-    function saveHistory(items){localStorage.setItem(HISTORY_KEY,JSON.stringify(items.slice(0,20)))}
+    function saveHistory(items){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(items.slice(0,20)))}catch(_){toast('浏览器存储已满，请单独保存链接与删除码',true)}}
 
     dropZone.addEventListener('click',event=>{if(uploading)return;if(event.target.closest('button'))return;fileInput.click()});
     dropZone.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&!uploading){event.preventDefault();fileInput.click()}});
@@ -848,6 +921,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     document.addEventListener('paste',event=>{if(uploading)return;const items=[...(event.clipboardData?.items||[])];const image=items.find(item=>item.kind==='file'&&item.type.startsWith('image/'));if(image){const file=image.getAsFile();if(file){event.preventDefault();selectFile(file);toast('已读取剪贴板图片')}}});
 
     function selectFile(file){
+      if(uploading)return;
       if(!file){toast('请选择文件',true);return}
       const isImage=file.type.startsWith('image/'),isVideo=file.type.startsWith('video/');
       if(!isImage&&!adminKeyInput.value.trim()){toast('非图片文件需要先输入管理员密钥',true);return}
@@ -866,26 +940,31 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
       document.getElementById('progressBar').style.width='0';
     }
 
-    function setUploading(value){uploading=value;dropZone.classList.toggle('busy',value);document.getElementById('uploadButton').disabled=value;document.getElementById('changeButton').disabled=value;document.getElementById('uploadButton').textContent=value?'正在上传…':'开始上传'}
+    function setUploading(value){uploading=value;adminKeyInput.disabled=value;document.getElementById('smartCompress').disabled=value;dropZone.classList.toggle('busy',value);document.getElementById('uploadButton').disabled=value;document.getElementById('changeButton').disabled=value;document.getElementById('uploadButton').textContent=value?'正在上传…':'开始上传'}
 
-    function uploadSelected(){
+    async function uploadSelected(){
       if(!selectedFile||uploading)return;
       setUploading(true);document.getElementById('progress').classList.add('show');
-      const form=new FormData();form.append('image',selectedFile,selectedFile.name||'pasted-image.png');
+      const prepared=await TblSpeed.prepare(selectedFile,document.getElementById('smartCompress').checked);
+      const uploadFile=prepared.file;
+      document.getElementById('fileMeta').textContent=uploadFile===selectedFile?formatBytes(uploadFile.size)+' · 保留原文件':formatBytes(selectedFile.size)+' → '+formatBytes(uploadFile.size)+' · WebP 网页图片';
+      const form=new FormData();form.append('image',uploadFile,uploadFile.name||'pasted-image.png');
       const xhr=new XMLHttpRequest();xhr.open('POST','/api/upload');
       const adminKey=adminKeyInput.value.trim();if(adminKey)xhr.setRequestHeader('X-TBL-Admin-Key',adminKey);
       xhr.upload.onprogress=event=>{if(event.lengthComputable)document.getElementById('progressBar').style.width=Math.round(event.loaded/event.total*100)+'%'};
-      xhr.onload=()=>{setUploading(false);let data={};try{data=JSON.parse(xhr.responseText)}catch(_){data.message='服务器返回内容无法读取'}if(xhr.status>=200&&xhr.status<300&&data.ok){document.getElementById('progressBar').style.width='100%';adminKeyInput.value='';showResult(data);loadStatus();toast('上传成功')}else toast(data.message||'上传失败',true)};
+      xhr.onload=()=>{setUploading(false);let data={};try{data=JSON.parse(xhr.responseText)}catch(_){data.message='服务器返回内容无法读取'}if(xhr.status>=200&&xhr.status<300&&data.ok){document.getElementById('progressBar').style.width='100%';adminKeyInput.value='';showResult(data,uploadFile,prepared.thumbnail);loadStatus();toast('上传成功')}else toast(data.message||'上传失败',true)};
       xhr.onerror=()=>{setUploading(false);toast('网络连接失败，请稍后重试',true)};
-      xhr.ontimeout=()=>{setUploading(false);toast('上传超时，请重试',true)};xhr.timeout=30000;xhr.send(form);
+      xhr.ontimeout=()=>{setUploading(false);toast('上传超时，请重试',true)};xhr.timeout=120000;xhr.send(form);
     }
 
-    function showResult(data){
+    function showResult(data,localFile=null,thumbnail=''){
+      if(resultObjectUrl)URL.revokeObjectURL(resultObjectUrl);resultObjectUrl='';
+      if(localFile&&data.kind==='image')resultObjectUrl=URL.createObjectURL(localFile);
       const direct=new URL(data.url,location.origin).href;
       const kind=data.kind||'image';
-      currentUpload={id:data.id,url:direct,deleteCode:data.deleteCode,name:data.originalName||selectedFile?.name||'file',kind,createdAt:new Date().toISOString()};
+      currentUpload={id:data.id,url:direct,deleteCode:data.deleteCode,name:data.originalName||selectedFile?.name||'file',kind,thumbnail,createdAt:new Date().toISOString()};
       const image=document.getElementById('resultPreview'),video=document.getElementById('resultVideo'),symbol=document.getElementById('resultFile');image.hidden=true;video.style.display='none';video.removeAttribute('src');symbol.classList.remove('show');
-      if(kind==='image'){image.src=direct;image.hidden=false}else if(kind==='video'){video.src=direct;video.style.display='block'}else symbol.classList.add('show');
+      if(kind==='image'){image.src=resultObjectUrl||direct;image.hidden=false}else if(kind==='video'){video.src=direct;video.style.display='block'}else symbol.classList.add('show');
       document.getElementById('result').classList.add('show');
       document.getElementById('directLink').value=direct;
       document.getElementById('markdownLink').value=kind==='image'?`![${markdownAlt(currentUpload.name)}](${direct})`:`[${markdownAlt(currentUpload.name)}](${direct})`;
@@ -898,7 +977,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
 
     async function copyText(value){try{await navigator.clipboard.writeText(value)}catch(_){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}toast('已复制')}
     function copyField(id){copyText(document.getElementById(id).value)}
-    function resetUploader(){selectedFile=null;currentUpload=null;if(previewObjectUrl)URL.revokeObjectURL(previewObjectUrl);previewObjectUrl='';document.getElementById('previewVideo').removeAttribute('src');document.getElementById('resultVideo').removeAttribute('src');document.getElementById('preview').classList.remove('show');document.getElementById('emptyState').style.display='block';document.getElementById('result').classList.remove('show');document.getElementById('progress').classList.remove('show');window.scrollTo({top:dropZone.offsetTop-20,behavior:'smooth'})}
+    function resetUploader(){if(uploading)return;if(resultObjectUrl)URL.revokeObjectURL(resultObjectUrl);resultObjectUrl='';document.getElementById('resultPreview').removeAttribute('src');selectedFile=null;currentUpload=null;if(previewObjectUrl)URL.revokeObjectURL(previewObjectUrl);previewObjectUrl='';document.getElementById('previewVideo').removeAttribute('src');document.getElementById('resultVideo').removeAttribute('src');document.getElementById('preview').classList.remove('show');document.getElementById('emptyState').style.display='block';document.getElementById('result').classList.remove('show');document.getElementById('progress').classList.remove('show');window.scrollTo({top:dropZone.offsetTop-20,behavior:'smooth'})}
 
     async function deleteUpload(item){
       if(!item||!confirm('确定删除这份文件吗？删除后链接会立即失效。'))return;
@@ -908,7 +987,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     function renderHistory(){
       const list=document.getElementById('historyList'),items=safeHistory();list.innerHTML='';
       if(!items.length){list.innerHTML='<div class="empty">还没有上传记录</div>';return}
-      items.forEach(item=>{const row=document.createElement('div');row.className='history-item';let thumb;if(!item.kind||item.kind==='image'){thumb=document.createElement('img');thumb.src=item.url;thumb.alt=''}else{thumb=document.createElement('div');thumb.className='history-thumb';thumb.textContent=item.kind==='video'?'▶':'⇩'}const main=document.createElement('div');main.className='history-main';const name=document.createElement('strong');name.textContent=item.name||'文件';const link=document.createElement('a');link.href=item.url;link.target='_blank';link.rel='noopener';link.textContent=item.url;main.append(name,link);const actions=document.createElement('div');actions.className='history-actions';const copy=document.createElement('button');copy.textContent='复制';copy.onclick=()=>copyText(item.url);const del=document.createElement('button');del.textContent='删除';del.onclick=()=>deleteUpload(item);actions.append(copy,del);row.append(thumb,main,actions);list.append(row)})
+      items.forEach(item=>{const row=document.createElement('div');row.className='history-item';const thumb=TblSpeed.historyThumbnail(item);const main=document.createElement('div');main.className='history-main';const name=document.createElement('strong');name.textContent=item.name||'文件';const link=document.createElement('a');link.href=item.url;link.target='_blank';link.rel='noopener';link.textContent=item.url;main.append(name,link);const actions=document.createElement('div');actions.className='history-actions';const copy=document.createElement('button');copy.textContent='复制';copy.onclick=()=>copyText(item.url);const del=document.createElement('button');del.textContent='删除';del.onclick=()=>deleteUpload(item);actions.append(copy,del);row.append(thumb,main,actions);list.append(row)})
     }
 
     async function loadStatus(){try{const response=await fetch('/api/status',{cache:'no-store'});const data=await response.json();if(!data.ok)return;const percent=Math.min(100,data.usedBytes/data.maxBytes*100);document.getElementById('capacityBar').style.width=percent+'%';document.getElementById('capacityText').textContent=formatBytes(data.usedBytes)+' / '+formatBytes(data.maxBytes);document.getElementById('capacityNote').textContent=`已保存 ${data.uploadCount??data.imageCount} 份文件；达到上限后自动删除最早文件。`}catch(_){document.getElementById('capacityText').textContent='暂时无法读取'}}

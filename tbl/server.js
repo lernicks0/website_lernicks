@@ -449,44 +449,7 @@ function serveUpload(req, res, requestedName) {
   const filePath = path.join(UPLOAD_DIR, fileName);
   fs.stat(filePath, (error, stats) => {
     if (error || !stats.isFile()) { sendText(res, 404, '文件不存在或已被自动清理'); return; }
-    const isInlineMedia = record.kind === 'image' || record.kind === 'video'
-      || (!record.kind && /^(?:image|video)\//.test(String(record.mime || '')));
-    const isVideo = record.kind === 'video' || (!record.kind && /^video\//.test(String(record.mime || '')));
-    const headers = {
-      'Content-Type': isInlineMedia ? record.mime : 'application/octet-stream',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-      'X-Content-Type-Options': 'nosniff',
-      'Content-Disposition': isInlineMedia ? 'inline' : downloadDisposition(record.originalName)
-    };
-    if (isVideo) headers['Accept-Ranges'] = 'bytes';
-
-    const rangeMatch = isVideo && String(req.headers.range || '').match(/^bytes=(\d*)-(\d*)$/);
-    if (rangeMatch) {
-      let start = rangeMatch[1] ? Number(rangeMatch[1]) : 0;
-      let end = rangeMatch[2] ? Number(rangeMatch[2]) : stats.size - 1;
-      if (!rangeMatch[1] && rangeMatch[2]) start = Math.max(0, stats.size - Number(rangeMatch[2]));
-      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start >= stats.size || end < start) {
-        res.writeHead(416, { 'Content-Range': `bytes */${stats.size}` });
-        res.end();
-        return;
-      }
-      end = Math.min(end, stats.size - 1);
-      headers['Content-Length'] = end - start + 1;
-      headers['Content-Range'] = `bytes ${start}-${end}/${stats.size}`;
-      res.writeHead(206, headers);
-      if (req.method === 'HEAD') { res.end(); return; }
-      const stream = fs.createReadStream(filePath, { start, end });
-      stream.on('error', () => res.destroy());
-      stream.pipe(res);
-      return;
-    }
-
-    headers['Content-Length'] = stats.size;
-    res.writeHead(200, headers);
-    if (req.method === 'HEAD') { res.end(); return; }
-    const stream = fs.createReadStream(filePath);
-    stream.on('error', () => res.destroy());
-    stream.pipe(res);
+    require('./media-delivery.cjs')(req, res, filePath, record, stats, downloadDisposition);
   });
 }
 
@@ -538,7 +501,7 @@ const server = http.createServer((req, res) => {
   sendText(res, 404, 'Not Found');
 });
 
-server.requestTimeout = 30 * 1000;
+server.requestTimeout = 120 * 1000;
 server.headersTimeout = 15 * 1000;
 server.listen(PORT, () => {
   console.log(`Lernicks 图床已启动: http://localhost:${PORT}`);
