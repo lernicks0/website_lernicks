@@ -41,4 +41,4 @@ sh -n deploy/install-note-security-20261106.sh
 
 工作区隔离接口测试依赖安装在 `deploy/note-security-runtime`；仓库安装依赖后直接使用根目录 express/bcryptjs。浏览器测试需要 Playwright 和 Edge，可用 `NODE_PATH` 或 `PLAYWRIGHT_MODULE` 指定本机已有 Playwright。全部测试使用临时虚构便签，不读取或修改真实用户数据。截图在本地 `deploy/note-security-preview`。
 
-未在服务器实际执行安装、重启并验证前，只能称为代码／安装器已发布。
+2026-11-06 已在腾讯云 OrcaTerm 以 ubuntu 登录、sudo 执行固定版本安装器，实际重启 telegram-notes，输出 NOTE_SECURITY_UPDATE_SUCCESS。代码备份 `/root/note-security-code-backup-vDF5tr4n`。公网首页 HTTP 200 且逐字匹配测试版本，随机不存在代号的元数据接口和 no-store 头正确；浏览器已确认三个选项。未创建、读取或销毁线上真实便签。

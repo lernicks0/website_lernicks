@@ -13,10 +13,13 @@ sudo bash /tmp/note-security-install.sh
 
 成功标志：NOTE_SECURITY_UPDATE_SUCCESS backup=/root/note-security-code-backup-...
 
-状态：代码和安装器已发布；本轮未执行服务器安装、未重启线上进程，不能称为已经上线。
-浏览器盘点只有新标签页，没有现成腾讯云控制台／WebShell 标签页。
+状态：2026-11-06 已在腾讯云 OrcaTerm 以 ubuntu 登录、sudo 执行固定安装器，实际重启 telegram-notes 并完成线上验证。
+初次浏览器无现成会话，随后打开腾讯云控制台，用户完成微信扫码登录后继续安装。
+服务器校验通过，成功标志 NOTE_SECURITY_UPDATE_SUCCESS；代码备份 /root/note-security-code-backup-vDF5tr4n。
+启动检查初期两次端口连接被拒绝，安装器等待后成功，没有回滚。
 只更新 /root/telegram-notes 的 server.js、public/index.html、note-security.cjs，只重启 telegram-notes。
 不复制便签数据建立新备份、不改域名或其他站点。详细语义、加密格式和边界见 DEPLOY-NOTE-SECURITY.md。
 
 已通过：后端接口、旧密码兼容、公开自定义问题、输错即焚、正确阅读后销毁、20 个并发读取至多一个成功、磁盘失败不泄漏正文、重启后仍删除、旧编辑器不能复活、真实 Web Crypto 与网络请求、主题切换和自动保存、1440/390/320px 布局、安装补丁和自包含资产一致性、shell 语法。
-没有上传、阅读或销毁线上真实便签。
+公网首页 HTTP 200，逐字匹配已测试版本；随机不存在代号的元数据接口 HTTP 200，encrypted/burnAfterRead 字段及 no-store 缓存头已核实。浏览器已确认三个新选项；只查看未保存的随机空白编辑页，没有创建、上传、阅读或销毁线上真实便签。
+本地证据：deploy/note-security-preview/server-installed.png、live-settings.png、live-verification.json。
