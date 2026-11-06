@@ -13,7 +13,7 @@ async function main(){
   await p.goto(f.origin+'/#/n/secret-letter');
   await p.locator('#editorArea').fill('这是一封加密的信。 <script>alert(1)</script>');
   await p.waitForTimeout(900);assert.equal(writes.length,0,'New notes must not upload plaintext before protection is chosen');
-  await p.locator('#e2ee').check();await p.locator('#burnAfterRead').check();
+  assert.equal(await p.locator('#e2ee').isChecked(),true,'New notes must default to E2EE');await p.locator('#burnAfterRead').check();
   await p.locator('#protectionMode').selectOption('question');await p.locator('#customQuestion').fill('我们约定的暗号是什么？');await p.locator('#newPw').fill('a-long-private-answer');
   for(const width of[1440,390,320]){
    await p.setViewportSize({width,height:950});
@@ -54,6 +54,10 @@ async function main(){
   await p.locator('#lockBtn').click();await p.locator('#protectionMode').selectOption('none');await p.locator('#saveSettings').click();await p.locator('#saveStatus').filter({hasText:'已保存'}).waitFor();assert.equal(f.store().editable.hasPassword,false);
   // Editing a consumed page's old owner token cannot recreate it.
   assert.equal((await f.api('wrong-answer','PUT',{revision:n.data.revision,token:n.data.token,content:'resurrect'})).status,410);
+  // Existing plaintext notes retain their format; choosing plaintext for a new note is explicit.
+  assert.equal((await f.api('legacy-plain','PUT',{create:true,content:'旧明文便签'})).status,200);
+  await p.goto(f.origin+'/#/n/legacy-plain');await p.locator('#editorArea').waitFor();assert.equal(await p.locator('#e2ee').isChecked(),false);await p.locator('#editorArea').fill('旧明文便签正常保存');await p.locator('#saveStatus').filter({hasText:'已保存'}).waitFor();assert.equal(f.store()['legacy-plain'].encrypted,false);
+  await p.goto(f.origin+'/#/n/explicit-plain');await p.locator('#editorArea').fill('明确选择普通模式');assert.equal(await p.locator('#e2ee').isChecked(),true);await p.locator('#e2ee').uncheck();await p.locator('#saveSettings').click();await p.locator('#saveStatus').filter({hasText:'已保存'}).waitFor();assert.equal(f.store()['explicit-plain'].encrypted,false);
   assert.deepEqual(errors,[]);
   console.log('PASS note UI: real Web Crypto and API, no plaintext before E2EE, full key link, question read/burn, wrong answer destruction, creator cleanup, refresh loss, no persisted secrets, 1440/390/320 layouts, autosave/theme continuity, encryption/password changes.');
  }finally{await browser.close();await f.close();}

@@ -23,6 +23,8 @@ const embedded=[...installer.matchAll(/base64 -d > "\$stage\/assets\/([^\"]+)" <
 assert.equal(embedded.length,8);
 for(const m of embedded){
  const expected=m[1]==='note-security.cjs'?read(source+'/note-security.cjs'):m[1]==='patch-note-security.cjs'?read('deploy/patch-note-security.cjs'):['client.sha256','routes.sha256','sections.json'].includes(m[1])?read('deploy/note-security-assets/'+m[1]):read(source+'/'+m[1]);
- assert.equal(Buffer.from(m[2],'base64').toString().replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'),'Embedded asset '+m[1]);
+ let embeddedAsset=Buffer.from(m[2],'base64').toString();
+ if(m[1]==='security-client.js' && fs.existsSync(path.join(root,'deploy/patch-note-default-e2ee.cjs')))embeddedAsset=require('../deploy/patch-note-default-e2ee.cjs').patchClient(embeddedAsset);
+ assert.equal(embeddedAsset.replace(/\r\n/g,'\n'),expected.replace(/\r\n/g,'\n'),'Embedded asset '+m[1]);
 }
 console.log('PASS note installer patch: exact known client/auth/writer/routes, LF/CRLF, preserve all design and feedback, idempotence, stop on unknown modifications.');
