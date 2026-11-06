@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-astra-site="note">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" id="themeColor" content="#12203a" />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<title>便签电报 · Notes</title>
+<script>
+  // 在页面画出来之前先读取主题，避免打开时闪一下旧颜色。
+  try{
+    var firstTheme = localStorage.getItem('tg_note_theme_v1') === 'tech' ? 'tech' : 'classic';
+    document.documentElement.setAttribute('data-note-theme', firstTheme);
+    document.getElementById('themeColor').content = firstTheme === 'tech' ? '#050b14' : '#12203a';
+  }catch(_){ document.documentElement.setAttribute('data-note-theme', 'classic'); }
+</script>
+<style>
+  :root{
+    --ink: #12203a;
+    --paper: #f4ecd8;
+    --text-dark: #241d12;
+    --text-light: #eee6d3;
+    --muted: #7c8aa3;
+    --teal: #3f7d76;
+    --teal-dark: #2c5b56;
+    --seal: #a13d33;
+    --seal-dark: #7e2e26;
+    --font-display: 'Courier New', 'Consolas', monospace;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background: var(--ink);
+    color: var(--text-light);
+    font-family: var(--font-body);
+  }
+  #app{min-height:100vh; display:flex; flex-direction:column; align-items:center;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  input, textarea{font-family:inherit;}
+
+  .topnav{width:100%; display:flex; justify-content:space-between; align-items:center; padding:22px 32px; letter-spacing:0.08em; font-size:13px; text-transform:uppercase; color:var(--muted);}
+  .topnav .brand{font-family:var(--font-display); color:var(--text-light); font-size:14px; letter-spacing:0.12em;}
+  .topnav .brand b{color:#e7b98f;}
+  .topnav nav{display:flex;align-items:center;justify-content:flex-end;}
+  .topnav nav a{margin-left:22px; transition:color .15s;}
+  .topnav nav a:hover{color:var(--text-light);}
+  .theme-toggle{margin-left:18px;padding:7px 10px;border:1px solid rgba(255,255,255,.13);border-radius:18px;color:var(--text-light);background:rgba(255,255,255,.06);font-size:12px;letter-spacing:.04em;white-space:nowrap;transition:.18s;}
+  .theme-toggle:hover{background:rgba(255,255,255,.13);transform:translateY(-1px);}
+  .theme-to-classic{display:none;}
+
+  .home-wrap{flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px 100px;}
+  .telegram-title{font-family:var(--font-display); font-size:clamp(28px,5vw,46px); text-align:center; margin:0 0 6px; color:var(--text-light);}
+  .telegram-sub{color:var(--muted); font-size:14px; text-align:center; max-width:440px; line-height:1.7; margin-bottom:40px;}
+  .telegram-card{background:var(--paper); color:var(--text-dark); width:min(460px,92vw); padding:34px 30px 28px; position:relative; box-shadow:0 30px 60px -20px rgba(0,0,0,0.55); border-radius:2px;}
+  .perforation{position:absolute; top:0; left:0; right:0; height:14px; background-image:radial-gradient(circle 7px, var(--ink) 7px, transparent 7.5px); background-size:28px 28px; background-position:14px -7px; background-repeat:repeat-x;}
+  .telegram-card label{display:block; font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#6b6250; margin-bottom:8px; margin-top:18px;}
+  .slug-input{width:100%; border:none; border-bottom:2px solid #c9bd9c; background:transparent; font-size:20px; font-family:var(--font-mono); padding:6px 2px; color:var(--text-dark); outline:none;}
+  .slug-input:focus{border-color:var(--teal);}
+  .go-btn{margin-top:26px; width:100%; background:var(--ink); color:var(--text-light); padding:14px; font-size:14px; letter-spacing:0.14em; text-transform:uppercase; font-family:var(--font-mono); border-radius:1px; transition:transform .12s, background .15s;}
+  .go-btn:hover{background:var(--teal-dark); transform:translateY(-1px);}
+  .home-hint{margin-top:22px; color:var(--muted); font-size:12.5px; text-align:center; max-width:400px; line-height:1.6;}
+
+  .note-wrap{flex:1; width:100%; display:flex; flex-direction:column; align-items:center; padding:0 0 60px;}
+  .note-bar{width:min(880px,94vw); display:flex; align-items:center; justify-content:space-between; padding:18px 4px 14px; flex-wrap:wrap; gap:10px;}
+  .postmark{font-family:var(--font-mono); font-size:13px; color:var(--text-light); border:1px dashed var(--muted); padding:6px 12px; border-radius:20px; display:flex; align-items:center; gap:8px;}
+  .postmark .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);}
+  .note-actions{display:flex; gap:10px; align-items:center;}
+  .icon-btn{background:rgba(255,255,255,0.06); color:var(--text-light); padding:9px 14px; border-radius:20px; font-size:12.5px; display:flex; align-items:center; gap:6px; transition:background .15s;}
+  .icon-btn:hover{background:rgba(255,255,255,0.14);}
+  .icon-btn.seal{background:var(--seal);}
+  .icon-btn.seal:hover{background:var(--seal-dark);}
+  .icon-btn.seal.off{background:rgba(255,255,255,0.06);}
+  .icon-btn.seal.off:hover{background:rgba(255,255,255,0.14);}
+
+  .paper-page{width:min(880px,94vw); background:var(--paper); position:relative; min-height:60vh; box-shadow:0 30px 60px -20px rgba(0,0,0,0.55); border-radius:2px;}
+  .paper-page textarea{width:100%; min-height:60vh; border:none; outline:none; background:transparent; resize:vertical; padding:40px 44px 30px; font-size:17px; line-height:1.85; color:var(--text-dark); font-family:var(--font-body);}
+  .save-status{position:absolute; bottom:12px; right:20px; font-family:var(--font-mono); font-size:11px; color:#8a806a;}
+
+  .settings-panel{width:min(880px,94vw); background:rgba(255,255,255,0.05); border-radius:4px; margin-top:14px; padding:20px 22px; font-size:13.5px; color:var(--text-light); display:none;}
+  .settings-panel.open{display:block;}
+  .settings-panel .row{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+  .settings-panel input[type=text]{background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--text-light); padding:9px 12px; border-radius:4px; font-size:13.5px; outline:none; flex:1;}
+  .settings-panel button.apply{background:var(--teal); color:#fff; padding:9px 16px; border-radius:4px; font-size:13px;}
+  .settings-panel button.apply:hover{background:var(--teal-dark);}
+  .settings-note{color:var(--muted); font-size:12px; line-height:1.6; margin-top:6px;}
+
+  .gate-wrap{flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:40px 20px;}
+  .gate-card{background:var(--paper); color:var(--text-dark); width:min(400px,90vw); padding:36px 30px; text-align:center; border-radius:2px; box-shadow:0 30px 60px -20px rgba(0,0,0,0.55); position:relative;}
+  .wax-seal{width:60px; height:60px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #c25445, var(--seal-dark)); margin:-66px auto 20px; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(0,0,0,0.4); font-size:22px;}
+  .gate-card h3{font-family:var(--font-display); margin:0 0 6px; font-size:20px;}
+  .gate-card p{color:#6b6250; font-size:13px; margin-bottom:20px;}
+  .gate-card input{width:100%; border:none; border-bottom:2px solid #c9bd9c; background:transparent; padding:8px 2px; font-size:16px; text-align:center; outline:none; margin-bottom:18px;}
+  .gate-card input:focus{border-color:var(--teal);}
+  .gate-error{color:var(--seal); font-size:12.5px; margin-top:-10px; margin-bottom:14px; display:none;}
+
+  .fb-wrap{flex:1; width:100%; display:flex; flex-direction:column; align-items:center; padding:20px 20px 80px;}
+  .fb-card{background:var(--paper); color:var(--text-dark); width:min(560px,94vw); padding:32px 30px; border-radius:2px; box-shadow:0 30px 60px -20px rgba(0,0,0,0.55); position:relative;}
+  .fb-card h2{font-family:var(--font-display); margin:8px 0 4px; font-size:22px;}
+  .fb-card p.desc{color:#6b6250; font-size:13px; margin-bottom:22px; line-height:1.6;}
+  .fb-card label{display:block; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:#6b6250; margin-bottom:6px; margin-top:16px;}
+  .fb-card input[type=text]{width:100%; border:none; border-bottom:2px solid #c9bd9c; background:transparent; padding:6px 2px; font-size:15px; outline:none;}
+  .fb-card textarea{width:100%; border:1px solid #c9bd9c; background:rgba(255,255,255,0.4); padding:10px; font-size:14.5px; line-height:1.6; min-height:110px; outline:none; border-radius:2px; resize:vertical;}
+  .fb-submit{margin-top:20px;}
+  .fb-msg{font-size:12.5px; color:var(--teal-dark); margin-top:10px; display:none;}
+  .fb-list-wrap{width:min(560px,94vw); margin-top:32px;}
+  .fb-list-title{font-family:var(--font-mono); color:var(--muted); font-size:12px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:14px;}
+  .fb-item{background:rgba(255,255,255,0.05); border-radius:4px; padding:14px 16px; margin-bottom:10px; font-size:13.5px; color:var(--text-light);}
+  .fb-item .meta{font-family:var(--font-mono); font-size:11px; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between;}
+  .fb-item .body{line-height:1.6; white-space:pre-wrap; word-break:break-word;}
+  .fb-empty{color:var(--muted); font-size:13px; text-align:center; padding:20px 0;}
+
+  /* 科技夜航：只改变外观，所有笔记功能仍然使用同一套代码。 */
+  html[data-note-theme="tech"]{
+    --ink:#050b14;
+    --paper:#0d1c2e;
+    --text-dark:#edfaff;
+    --text-light:#f1fbff;
+    --muted:#8ea8b9;
+    --teal:#59e2ff;
+    --teal-dark:#2bb2cf;
+    --seal:#ff7188;
+    --seal-dark:#cb4961;
+  }
+  html[data-note-theme="tech"] body{
+    background:
+      radial-gradient(circle at 14% 0%,rgba(31,131,185,.24),transparent 34%),
+      radial-gradient(circle at 88% 18%,rgba(92,76,210,.18),transparent 32%),
+      var(--ink);
+  }
+  html[data-note-theme="tech"] body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.38;
+    background-image:linear-gradient(rgba(89,226,255,.026) 1px,transparent 1px),linear-gradient(90deg,rgba(89,226,255,.026) 1px,transparent 1px);
+    background-size:34px 34px;mask-image:linear-gradient(#000,transparent 88%);
+  }
+  html[data-note-theme="tech"] #app{position:relative;z-index:1;}
+  html[data-note-theme="tech"] .topnav{border-bottom:1px solid rgba(89,226,255,.1);background:rgba(5,14,25,.52);backdrop-filter:blur(14px);}
+  html[data-note-theme="tech"] .topnav .brand b{color:var(--teal);text-shadow:0 0 22px rgba(89,226,255,.24);}
+  html[data-note-theme="tech"] .theme-to-tech{display:none;}
+  html[data-note-theme="tech"] .theme-to-classic{display:inline;}
+  html[data-note-theme="tech"] .theme-toggle{border-color:rgba(89,226,255,.25);color:var(--teal);background:rgba(89,226,255,.07);}
+  html[data-note-theme="tech"] .telegram-title{letter-spacing:-.035em;text-shadow:0 0 36px rgba(89,226,255,.12);}
+  html[data-note-theme="tech"] .telegram-card,
+  html[data-note-theme="tech"] .paper-page,
+  html[data-note-theme="tech"] .gate-card,
+  html[data-note-theme="tech"] .fb-card{
+    border:1px solid rgba(89,226,255,.2);border-radius:20px;
+    background:linear-gradient(150deg,#10243a,#091525 78%);
+    box-shadow:0 28px 80px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.025);
+  }
+  html[data-note-theme="tech"] .perforation{left:24px;right:24px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal),transparent);opacity:.65;}
+  html[data-note-theme="tech"] .telegram-card label,
+  html[data-note-theme="tech"] .fb-card label,
+  html[data-note-theme="tech"] .gate-card p,
+  html[data-note-theme="tech"] .fb-card p.desc{color:var(--muted);}
+  html[data-note-theme="tech"] .slug-input,
+  html[data-note-theme="tech"] .gate-card input,
+  html[data-note-theme="tech"] .fb-card input[type=text]{color:var(--text-dark);border-color:rgba(89,226,255,.24);}
+  html[data-note-theme="tech"] .slug-input::placeholder,
+  html[data-note-theme="tech"] .gate-card input::placeholder,
+  html[data-note-theme="tech"] .fb-card input::placeholder,
+  html[data-note-theme="tech"] .fb-card textarea::placeholder{color:#5f788a;}
+  html[data-note-theme="tech"] .go-btn{border-radius:10px;color:#04151d;background:linear-gradient(135deg,var(--teal),#79efb9);font-weight:900;box-shadow:0 10px 30px rgba(89,226,255,.13);}
+  html[data-note-theme="tech"] .go-btn:hover{background:linear-gradient(135deg,#86ecff,#9bf5ca);}
+  html[data-note-theme="tech"] #randomBtn{border-radius:9px!important;color:#04151d!important;font-weight:800;background:var(--teal)!important;}
+  html[data-note-theme="tech"] .postmark{border-style:solid;border-color:rgba(89,226,255,.24);color:var(--text-light);background:rgba(12,31,51,.65);}
+  html[data-note-theme="tech"] .icon-btn{border:1px solid rgba(89,226,255,.13);background:rgba(16,42,66,.64);}
+  html[data-note-theme="tech"] .icon-btn:hover{border-color:rgba(89,226,255,.36);background:rgba(24,57,86,.8);}
+  html[data-note-theme="tech"] .icon-btn.seal{border-color:rgba(255,113,136,.35);background:rgba(143,42,62,.5);}
+  html[data-note-theme="tech"] .paper-page textarea{color:var(--text-dark);background-image:linear-gradient(rgba(89,226,255,.035) 1px,transparent 1px);background-size:100% 31.45px;}
+  html[data-note-theme="tech"] .save-status{color:#7192a7;}
+  html[data-note-theme="tech"] .settings-panel{border:1px solid rgba(89,226,255,.14);border-radius:13px;background:rgba(10,27,45,.78);backdrop-filter:blur(14px);}
+  html[data-note-theme="tech"] .settings-panel input[type=text]{border-color:rgba(89,226,255,.2);border-radius:9px;background:#071625;}
+  html[data-note-theme="tech"] .settings-panel button.apply{border-radius:9px;color:#04151d;font-weight:800;}
+  html[data-note-theme="tech"] .wax-seal{border-radius:18px;color:#06151d;background:linear-gradient(145deg,var(--teal),#7a98ff);box-shadow:0 10px 30px rgba(89,226,255,.2);}
+  html[data-note-theme="tech"] .fb-card textarea{color:var(--text-dark);border-color:rgba(89,226,255,.2);border-radius:10px;background:#071625;}
+  html[data-note-theme="tech"] .fb-item{border:1px solid rgba(89,226,255,.12);border-radius:12px;background:rgba(13,35,56,.7);}
+
+  @media (max-width:600px){
+    .topnav{padding:18px 18px;}
+    .topnav{flex-wrap:wrap;gap:11px;}
+    .topnav nav{width:100%;}
+    .topnav nav a{margin-left:14px;}
+    .theme-toggle{margin-left:12px;}
+    .paper-page textarea{padding:28px 20px 24px; font-size:16px;}
+  }
+</style>
+<!-- ASTRA HEAD START -->
+<style id="astra-style">
+/* 只有 html.astra 下的样式生效；原有样式完整保留。 */
+.astra-only{display:none!important}
+html:not(.astra) .astra-only{display:none!important}
+html.astra .astra-only{display:revert!important}
+html.astra .legacy-only{display:none!important}
+.design-switch{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;font:13px/1.4 system-ui,"Microsoft YaHei",sans-serif;letter-spacing:0;text-transform:none;color:#c9d4e5}
+.design-switch select{width:auto;min-width:80px;min-height:36px;padding:6px 24px 6px 10px;border:1px solid #40516a;border-radius:7px;color:#edf2fa;background:#142139;font:inherit;cursor:pointer}
+.design-switch select:focus-visible{outline:3px solid #f3b15f;outline-offset:3px}
+.astra-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
+html[data-astra-site="note"] .theme-toggle{display:none}
+html.astra{
+  color-scheme:light;--bg:#f6f7f9;--panel:#fff;--panel2:#f0f3f8;--line:#dce1e8;--text:#1a2331;--muted:#626d7d;
+  --cyan:#245de2;--blue:#245de2;--green:#217350;--gold:#986019;--purple:#6451ab;--red:#b73849;--article:#273243;
+  --note:#245de2;--image:#245de2;--document:#245de2;--status:#217350;
+  --a-paper:#fff;--a-soft:#eef2f8;--a-ink:#172337;--a-accent:#245de2;--a-on-accent:#fff;--a-line:#dce1e8;
+}
+html.astra body{background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;line-height:1.65;letter-spacing:0}
+html.astra body:before,html.astra body:after{display:none}
+html.astra *,html.astra *:before,html.astra *:after{box-sizing:border-box;text-shadow:none}
+html.astra :is(button,a,input,select,textarea){-webkit-tap-highlight-color:transparent}
+html.astra :is(button,a,input,select,textarea):focus-visible{outline:3px solid var(--a-accent);outline-offset:4px}
+html.astra :is(input,textarea,select){font-size:16px}
+html.astra :is(button,a){transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease}
+html.astra :is(.page,.app){width:min(1180px,calc(100% - 64px));padding:26px 0 40px}
+html.astra :is(.topbar,.top,header){gap:20px;flex-wrap:wrap}
+html.astra :is(.topbar,.top){padding-bottom:22px;border-bottom:1px solid var(--line)}
+html.astra .brand{min-width:0;gap:12px}
+html.astra :is(.brand h1,.brand strong){font-size:18px;font-weight:650;letter-spacing:-.025em}
+html.astra :is(.brand p,.brand span,.brand-caption){font-size:11px;letter-spacing:.1em;color:var(--muted)}
+html.astra :is(.logo,.mark){width:40px;height:40px;flex:0 0 40px;border:0;border-radius:10px;background:var(--a-ink);color:#fff;box-shadow:none;font-size:18px;font-weight:700}
+html.astra :is(.top-actions,.actions,.security-tools){flex-wrap:wrap}
+html.astra :is(.nav-btn,.home,.home-link,.badge.action,.btn,.file-button,.preview-toggle,.copy-row button){color:var(--text);background:var(--a-paper);border:1px solid var(--line);border-radius:7px;box-shadow:none;font-size:14px;font-weight:500;padding:9px 14px;line-height:1.5;min-height:40px}
+html.astra :is(.nav-btn,.home,.home-link,.badge.action,.btn,.file-button,.preview-toggle,.copy-row button):hover{background:var(--a-soft);border-color:var(--muted);transform:none}
+html.astra :is(.btn.primary,.create-button,.submit-btn,.choose,.preview-toggle.active){background:var(--a-accent);border-color:var(--a-accent);color:var(--a-on-accent);box-shadow:none;border-radius:7px;font-size:14px;font-weight:600}
+html.astra :is(.btn.danger,.btn-danger){color:var(--red);background:transparent;border-color:var(--red)}
+html.astra .design-switch{color:var(--muted)}
+html.astra .design-switch select{color:var(--text);background:var(--a-paper);border-color:var(--line);font-size:14px;min-height:40px}
+html.astra :is(.online,.top-actions>.badge:not(.action)){display:none}
+html.astra .hero{padding:46px 0 30px;text-align:left}
+html.astra .eyebrow{color:var(--a-accent);font-size:11px;font-weight:600;letter-spacing:.18em}
+html.astra .hero h2{font-size:clamp(28px,3.4vw,44px);line-height:1.3;letter-spacing:-.04em;margin:12px 0}
+html.astra :is(.hero h2 span,.shine){color:var(--text);background:none;-webkit-text-fill-color:currentColor}
+html.astra .hero p{color:var(--muted);margin:0;max-width:660px;font-size:15px;line-height:1.8}
+html.astra :is(.panel,.feedback-panel,.editor,.key-gate){background:var(--a-paper);border:1px solid var(--line);border-radius:10px;box-shadow:none}
+html.astra :is(.field,.title-input,.content-input,.admin-key-input,.copy-row input,.feedback-form input,.feedback-form textarea,.format-picker select){background:var(--a-paper);color:var(--text);border:1px solid var(--line);border-radius:6px;box-shadow:none}
+html.astra :is(input,textarea)::placeholder{color:var(--muted);opacity:1}
+html.astra :is(.field-label,.label,.format-picker,.feedback-form label){font-size:14px;color:var(--muted)}
+html.astra :is(.tip span,.rule span,.info small,.capacity small,.counter,.copy-row label,.result-note,.history-sub){font-size:13px;line-height:1.7;color:var(--muted)}
+html.astra :is(.tip strong,.rule strong,.info h3){color:var(--text)}
+html.astra :is(.tip i,.rule-icon){color:var(--a-accent);background:var(--a-soft);border:0;border-radius:6px;box-shadow:none}
+html.astra .meter{height:5px;background:var(--a-soft)}
+html.astra .meter i{background:var(--a-accent)}
+html.astra footer{color:var(--muted);font-size:12px;line-height:1.8;padding:24px 0 0;border-top:1px solid var(--line);margin-top:40px;flex-wrap:wrap}
+html.astra :is(.toast,.toast.show){background:var(--a-ink);color:#fff;max-width:calc(100% - 32px);font-size:14px;border:1px solid var(--line);box-shadow:0 8px 24px #0002;border-radius:8px}
+html.astra :is(.toast.bad,.toast.error){background:#7b2336;color:#fff}
+html.astra .feedback-view{padding:40px 0 10px}
+html.astra .feedback-head{text-align:left;margin:0 0 28px}
+html.astra .feedback-head h2{font-size:36px}
+html.astra .feedback-item{background:var(--a-soft);border-color:var(--line);border-radius:6px}
+html.astra .feedback-form label{color:var(--text)}
+/* 主站：文字与三张内容标本，而非大图标。 */
+html.astra[data-astra-site="main"] .hero{padding:76px 0 48px;position:relative}
+html.astra[data-astra-site="main"] .hero h2{font-size:clamp(40px,5.6vw,70px);font-weight:600;letter-spacing:-.055em;line-height:1.25;max-width:850px;margin:18px 0}
+html.astra[data-astra-site="main"] .sites{gap:24px;grid-template-columns:repeat(3,minmax(0,1fr))}
+html.astra[data-astra-site="main"] .card{min-height:395px;padding:0 0 62px;background:transparent;border:0;border-radius:0;box-shadow:none;overflow:visible}
+html.astra[data-astra-site="main"] .card:before,html.astra[data-astra-site="main"] .card:after{display:none}
+html.astra[data-astra-site="main"] .card:hover{transform:none;box-shadow:none}
+html.astra[data-astra-site="main"] .card :is(.icon,.number){display:none}
+html.astra[data-astra-site="main"] .card h3{font-size:22px;letter-spacing:-.03em;margin:24px 0 8px;color:var(--text)}
+html.astra[data-astra-site="main"] .card p{font-size:14px;line-height:1.85;color:var(--muted)}
+html.astra[data-astra-site="main"] .enter{left:0;right:0;bottom:8px;font-size:13px;color:var(--a-accent);font-weight:600}
+html.astra[data-astra-site="main"] .arrow{border:0;background:none;color:var(--a-accent)}
+html.astra[data-astra-site="main"] .small-note{text-align:left;color:var(--muted);font-size:12px;margin-top:36px}
+html.astra .astra-specimen{height:194px;position:relative;overflow:hidden;display:flex!important;align-items:center;justify-content:center;border-radius:8px;background:#e9eef6;color:#19273e;transition:transform .2s}
+.astra-specimen .spec-sheet{width:72%;padding:23px 24px;background:#fff;box-shadow:0 9px 24px #17233712;transform:rotate(-4deg);font-size:13px;line-height:2}
+.spec-sheet small{display:block;font-size:10px;color:#6b788c;letter-spacing:.14em;border-bottom:1px solid #e1e6ee;margin-bottom:12px;padding-bottom:7px}
+.spec-sheet .spec-line{height:1px;background:#e6ebf2;margin-top:12px}
+.astra-specimen.document{background:#eaeef4}
+.astra-specimen.document .spec-sheet{transform:rotate(3deg);font-family:Georgia,"Microsoft YaHei",serif}
+.spec-formula{font:italic 26px Georgia,serif;display:block;text-align:center;margin:9px 0}
+.astra-specimen.picture{background:#dce8f2}
+.spec-photo{position:relative;width:70%;height:132px;border:7px solid #fff;background:#bacede;overflow:hidden;transform:rotate(-5deg);box-shadow:0 10px 24px #1723371a}
+.spec-photo:before{content:"";width:130px;height:130px;position:absolute;left:-12px;bottom:-80px;background:#668294;transform:rotate(45deg)}
+.spec-photo:after{content:"";width:170px;height:170px;position:absolute;right:-25px;bottom:-105px;background:#385970;transform:rotate(45deg)}
+.spec-sun{width:27px;height:27px;border-radius:50%;background:#f4e5bb;position:absolute;right:26px;top:17px}
+.spec-file{position:absolute;bottom:24px;right:21px;background:#fff;color:#405069;border-radius:4px;padding:5px 10px;font:11px/1.5 Consolas,monospace;box-shadow:0 3px 12px #0001}
+/* 班级新版：浅色纸面、墨蓝文字与蓝色操作，原版深色完全保留。 */
+html.astra:is([data-astra-site="cla"],[data-astra-site="pk"],[data-astra-site="sco"],[data-astra-site="goal"]){
+ color-scheme:light;--bg:#f6f7f9;--page:#f6f7f9;--panel:#fff;--panel2:#eef2f8;--surface:#fff;--surface-2:#f0f3f8;--surface-3:#e8edf5;--text:#1a2331;--muted:#626d7d;--muted-2:#68758a;--line:#dce1e8;--border:#dce1e8;--border-light:#b7c3d3;--cyan:#245de2;--blue:#245de2;--gold:#986019;--amber:#9b551c;--amber-soft:#9b551c0d;--blue-soft:#245de20c;--green:#217350;--red:#b73849;--purple:#6451ab;--a-paper:#fff;--a-soft:#eef2f8;--a-ink:#172337;--a-accent:#245de2;--a-on-accent:#fff;--a-line:#dce1e8;--shadow:none;
+}
+html.astra:is([data-astra-site="cla"],[data-astra-site="sco"],[data-astra-site="goal"]) :is(.logo,.mark){background:var(--a-ink);color:#fff;border-radius:7px;box-shadow:none}
+html.astra[data-astra-site="cla"] .hero{position:relative;padding:56px 210px 44px 0;min-height:245px}
+html.astra[data-astra-site="cla"] .hero:after{content:"803";position:absolute;right:0;top:24px;color:#aebed3;font:600 clamp(100px,13vw,164px)/1.2 Georgia,serif;letter-spacing:-.08em;opacity:.9}
+html.astra[data-astra-site="cla"] .hero h2{font-size:clamp(34px,4.8vw,57px);line-height:1.28;max-width:740px;font-weight:600}
+html.astra[data-astra-site="cla"] .sites{grid-template-columns:1.3fr 1fr;gap:18px}
+html.astra[data-astra-site="cla"] .card{border-radius:9px;padding:26px;min-height:180px;background:var(--a-paper);box-shadow:none;border-color:var(--line);--accent:var(--a-accent)}
+html.astra[data-astra-site="cla"] .card:before{display:none}
+html.astra[data-astra-site="cla"] .card.pk{grid-row:span 2;display:flex;flex-direction:column;justify-content:center;padding:38px;background:#e7edf7;color:#172337;border:1px solid #d1dced;--accent:#245de2}
+html.astra[data-astra-site="cla"] .card.pk:after{content:"VS";position:absolute;top:8px;right:25px;color:#17233712;font:italic 100px Georgia,serif;pointer-events:none}
+html.astra[data-astra-site="cla"] .card.pk h3{font-size:38px;margin:18px 0 10px}
+html.astra[data-astra-site="cla"] .card.pk p{color:#3d4550;max-width:360px}
+html.astra[data-astra-site="cla"] .card .icon{display:none}
+html.astra[data-astra-site="cla"] .card h3{font-size:25px;margin:15px 0 8px;font-weight:600}
+html.astra[data-astra-site="cla"] .card p{font-size:14px;padding-bottom:40px;line-height:1.8}
+html.astra[data-astra-site="cla"] .card-no{font-size:11px;letter-spacing:.14em}
+html.astra[data-astra-site="cla"] .enter{font-size:13px;font-weight:600;bottom:22px;right:26px}
+html.astra[data-astra-site="cla"] .card:hover{transform:translateY(-2px);box-shadow:none;border-color:var(--a-accent)}
+html.astra :is(.modal-card,.dialog,.dlg-box,.gate-card){border-radius:10px;background:var(--a-paper);border-color:var(--line);box-shadow:0 24px 80px #0004;color:var(--text)}
+html.astra .modal-close{background:var(--a-accent);color:var(--a-on-accent);border-radius:6px;box-shadow:none}
+html.astra:is([data-astra-site="sco"],[data-astra-site="goal"]) header{padding:0 0 22px;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;backdrop-filter:none}
+html.astra:is([data-astra-site="sco"],[data-astra-site="goal"]) .hero{grid-template-columns:1.1fr 1fr;padding:0;margin:32px 0 26px;gap:36px}
+html.astra :is(.hero-card,.stats,.toolbar){background:transparent;border:0;border-radius:0;box-shadow:none}
+html.astra .hero-card{padding:8px 0}
+html.astra :is([data-astra-site="sco"],[data-astra-site="goal"]) .hero h2{font-size:36px}
+html.astra .stats{border-top:1px solid var(--line);border-bottom:1px solid var(--line);align-self:stretch}
+html.astra .stat{padding:18px 20px;min-height:84px;background:transparent;border-radius:0;box-shadow:none;border-color:var(--line)}
+html.astra .stat span{font-size:12px}
+html.astra .stat strong{font-size:29px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--text);margin-top:3px}
+html.astra .toolbar{padding:14px 0;margin-bottom:12px;border-bottom:1px solid var(--line);gap:18px}
+html.astra :is(.search,select.field){border-color:var(--line);background:var(--a-paper);color:var(--text);border-radius:6px;padding:10px 12px;font-size:14px}
+html.astra .mode{border:0;background:var(--a-soft);border-radius:5px;font-size:12px;box-shadow:none}
+html.astra .mode .dot{box-shadow:none}
+html.astra .students{grid-template-columns:repeat(3,minmax(0,1fr));gap:0 26px}
+html.astra .student{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:83px;padding:18px 4px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+html.astra .student:after{display:none}
+html.astra .student:hover{background:var(--a-soft);transform:none;box-shadow:none}
+html.astra .student .name{font-size:16px;font-weight:500;overflow-wrap:anywhere}
+html.astra .student .score{font-size:28px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--a-accent);margin:0}
+html.astra .student .score.neg{color:var(--red)}
+html.astra .student .unit{font-size:12px;margin-left:5px;color:var(--muted)}
+html.astra[data-astra-site="goal"] .student{align-items:flex-start;flex-direction:column;justify-content:center;gap:7px;min-height:100px}
+html.astra .student .goal{margin:0;gap:9px}
+html.astra :is(.goal-chip,.goal-chip.rank){font-size:13px;color:var(--a-accent);background:transparent;padding:0;border-radius:0}
+html.astra .unset{font-size:13px;margin:0}
+html.astra :is(.rank-row,.archive,.round-item,.help-step){background:var(--a-paper);border-color:var(--line);border-radius:6px}
+/* 擂台：对阵是主角，名单在旁边，档案以分隔线组织。 */
+html.astra[data-astra-site="pk"] .topbar{max-width:1180px;padding:24px 0;width:calc(100% - 64px)}
+html.astra[data-astra-site="pk"] .container{max-width:1180px;width:calc(100% - 64px);padding:0}
+html.astra[data-astra-site="pk"] .brand-mark{width:42px;height:42px;filter:none}
+html.astra[data-astra-site="pk"] .brand-name{font-size:18px;font-weight:600}
+html.astra[data-astra-site="pk"] .security-tools button{font-size:13px;border-radius:6px;background:var(--a-paper);padding:9px 12px;color:var(--text)}
+html.astra[data-astra-site="pk"] .hero-panel{grid-template-columns:1.3fr 1fr;background:transparent;border:0;border-radius:0;padding:32px 0 24px;margin:0;box-shadow:none;gap:30px}
+html.astra[data-astra-site="pk"] .hero-panel:after{display:none}
+html.astra[data-astra-site="pk"] .header h1{font-size:clamp(30px,4vw,48px);font-weight:600;line-height:1.3;letter-spacing:-.04em;margin:8px 0}
+html.astra[data-astra-site="pk"] .header .subtitle{font-size:14px}
+html.astra[data-astra-site="pk"] .status-bar{border:0;border-left:2px solid var(--a-accent);border-radius:0;background:transparent;padding:12px 18px;font-size:14px;box-shadow:none}
+html.astra[data-astra-site="pk"] .status-dot{display:none}
+html.astra .astra-arena-nav{display:flex!important;gap:26px;align-items:center;flex-wrap:wrap;padding:0 0 15px;margin-bottom:24px;border-bottom:1px solid var(--line)}
+.astra-arena-nav a{color:var(--muted);font-size:14px;text-decoration:none;padding:8px 0}
+.astra-arena-nav a:first-child{color:var(--a-accent)}
+html.astra[data-astra-site="pk"] .dashboard-grid{grid-template-columns:minmax(250px,.75fr) minmax(0,1.25fr);gap:28px}
+html.astra[data-astra-site="pk"] .surface{padding:22px;background:var(--a-paper);border:1px solid var(--line);border-radius:9px;box-shadow:none}
+html.astra[data-astra-site="pk"] .roster-surface{padding:20px 0;background:transparent;border:0}
+html.astra[data-astra-site="pk"] .match-surface{position:static;border-top:3px solid var(--a-accent)}
+html.astra[data-astra-site="pk"] .name-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+html.astra[data-astra-site="pk"] .name-btn{font-size:14px;min-height:43px;background:transparent;border-color:var(--line);color:var(--text);border-radius:5px;box-shadow:none;letter-spacing:0}
+html.astra[data-astra-site="pk"] .surface-heading h2{font-size:20px;font-weight:600}
+html.astra[data-astra-site="pk"] .surface-count{border-radius:4px;font-size:12px}
+html.astra[data-astra-site="pk"] .pk-list{gap:0}
+html.astra[data-astra-site="pk"] .pk-item{position:relative;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;min-height:82px;padding:18px 9px;box-shadow:none;font-size:16px;animation:none}
+html.astra[data-astra-site="pk"] :is(.pk-self,.pk-opp){flex:1;min-width:65px;text-align:center;color:var(--text);font-size:19px;font-weight:500}
+html.astra[data-astra-site="pk"] .pk-vs{font:italic 16px Georgia,serif;color:var(--a-accent);background:none;padding:0;min-width:28px}
+html.astra[data-astra-site="pk"] .pk-del{font-size:12px;flex:0 0 auto;margin-left:0;opacity:.85}
+html.astra [data-astra-score-source]{display:none!important}
+html.astra .astra-scoreboard{display:grid!important;grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);align-items:center;gap:12px;width:100%;padding:12px 0;text-align:center}
+html.astra .astra-scoreboard>div{min-width:0}
+html.astra .astra-scoreboard span{display:block;color:var(--text);font-size:16px;overflow-wrap:anywhere}
+html.astra .astra-scoreboard strong{display:block;font-size:clamp(30px,4vw,48px);font-weight:500;line-height:1.35;font-variant-numeric:tabular-nums;color:var(--a-accent);margin-top:7px}
+html.astra .astra-scoreboard em{font:italic 16px Georgia,serif;color:var(--muted)}
+html.astra[data-astra-site="pk"] :is(.saved-section,.win-section){padding:26px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none;margin-top:32px}
+html.astra[data-astra-site="pk"] :is(.saved-item,.saved-exam-block){background:transparent;border-color:var(--line);border-radius:5px}
+html.astra[data-astra-site="pk"] .empty-state{border:0;border-radius:0;background:transparent;color:var(--muted);padding:45px 16px;font-size:14px}
+html.astra[data-astra-site="pk"] .empty-state small{color:var(--muted);font-size:13px}
+html.astra[data-astra-site="pk"] .btn{font-size:14px;border-radius:6px}
+html.astra[data-astra-site="pk"] .site-credit{max-width:1180px;width:calc(100% - 64px);margin:36px auto 0;text-align:left;font-size:12px}
+html.astra[data-astra-site="pk"] :is(.gate-overlay,.dlg-overlay){background:#101b2bf0;backdrop-filter:blur(5px)}
+html.astra[data-astra-site="pk"] .gate-card{padding:38px 30px}
+html.astra[data-astra-site="pk"] .gate-card:before{display:none}
+html.astra[data-astra-site="pk"] #gateBtn{background:var(--a-accent);color:var(--a-on-accent);border-radius:6px;box-shadow:none}
+/* 原界面里固定的深底和亮字也一同调整，覆盖成绩表、验证门与弹窗。 */
+html.astra:is([data-astra-site="sco"],[data-astra-site="goal"]) .gate,
+html.astra[data-astra-site="pk"] .gate-overlay{background:#eef2f7}
+html.astra :is(.overlay,.modal,.dlg-overlay,.ca-overlay){background:#17233770;backdrop-filter:blur(5px)}
+html.astra[data-astra-site="pk"] .dlg-overlay{background:#17233770}
+html.astra .gate-icon{background:var(--a-soft);color:var(--a-accent);border:1px solid var(--line);box-shadow:none;border-radius:10px}
+html.astra :is(.help-tip,.readonly){color:#79521a;background:#fcf5e7;border-color:#e7d8ba}
+html.astra :is(.btn.purple,.btn.warn){color:var(--a-accent);background:var(--a-soft);border:1px solid var(--line)}
+html.astra :is(.dlg-pk .ds,.dlg-pk .do,.saved-self,.saved-opp,.win-names-list .wn){color:var(--text)}
+html.astra :is(.saved-vs,.saved-exam-count,.saved-exam-time,.score-info){color:var(--muted)}
+html.astra :is(.analysis-result,.score-result-box,.paste-area,.analysis-name-input){background:var(--a-paper);color:var(--text);border-color:var(--line)}
+html.astra :is(.btn-analysis,.btn-paste,.exam-name-badge,.win-exam-header .badge){color:var(--a-accent);background:var(--a-soft);border-color:var(--line);box-shadow:none}
+html.astra .btn-analysis:hover{color:var(--a-accent);background:#e1e9f8;border-color:var(--a-accent)}
+html.astra :is(.input-exam-name,.score-table input){background:var(--a-paper)!important;color:var(--text)!important;border-color:var(--border-light)!important}
+html.astra .score-table th{background:var(--a-soft);color:var(--text)}
+html.astra .score-name-cell{color:var(--text)!important}
+html.astra[data-astra-site="pk"] .name-btn.sel{background:var(--a-accent)!important;border-color:var(--a-accent)!important;color:#fff!important;box-shadow:none}
+html.astra[data-astra-site="pk"] :is(.btn-save,.btn-pri,.btn-pk,.help-close){background:var(--a-accent);color:#fff;border-color:var(--a-accent);box-shadow:none}
+html.astra[data-astra-site="pk"] :is(.btn-save,.btn-pri,.btn-pk):disabled{background:var(--a-soft);color:var(--muted);border-color:var(--line)}
+html.astra[data-astra-site="pk"] .btn-gray{color:var(--text);background:var(--a-soft);border-color:var(--line)}
+html.astra[data-astra-site="pk"] .status-bar .selected-name{color:var(--a-accent);background:var(--a-soft)}
+html.astra[data-astra-site="pk"] :is(.gate-caption,.gate-footnote,.gate-question){color:var(--muted)}
+html.astra[data-astra-site="pk"] #gateAnswer{background:var(--a-paper);color:var(--text);border-color:var(--line)}
+/* 文档和图床：把首屏交给输入区域。 */
+html.astra:is([data-astra-site="mk"],[data-astra-site="tbl"]) .hero{padding:30px 0 24px}
+html.astra:is([data-astra-site="mk"],[data-astra-site="tbl"]) .hero h2 br{display:none}
+html.astra .editor-shell{grid-template-columns:minmax(0,1fr) 260px;gap:24px}
+html.astra .editor{padding:26px}
+html.astra .content-input{min-height:450px;line-height:1.85;background:#fcfdff;font-size:15px;padding:20px}
+html.astra .title-input{font-size:18px}
+html.astra .side{gap:20px}
+html.astra .side .panel{background:transparent;border:0;border-radius:0;padding:12px 0 18px;border-bottom:1px solid var(--line)}
+html.astra .compose-preview{background:var(--a-paper);color:var(--article);border-color:var(--line);border-radius:6px;font-size:17px;line-height:1.9;box-shadow:none}
+html.astra :is(.compose-preview h1,.compose-preview h2,.compose-preview h3){color:var(--text)}
+html.astra :is(.compose-preview pre,.compose-preview code,.article pre,.article code){color:#274267;background:#eef2f8;border-color:var(--line)}
+html.astra :is(.compose-preview th,.compose-preview td,.article th,.article td){border-color:var(--line)}
+html.astra .key-warning{color:#71501b;background:#fbf3df;border-color:#e6d6ae}
+html.astra[data-astra-site="document"] .page{width:min(1060px,calc(100% - 64px))}
+html.astra .document-head{text-align:left;padding:46px 0 26px}
+html.astra .document-head h1{font-size:clamp(28px,4vw,44px);font-weight:600;letter-spacing:-.04em;color:var(--text);line-height:1.35}
+html.astra .article{background:var(--a-paper);color:var(--article);border:1px solid var(--line);border-radius:6px;box-shadow:none;padding:40px clamp(22px,5vw,68px);font-size:17px;line-height:1.95}
+html.astra .article :is(h1,h2,h3,h4){color:var(--text)}
+html.astra :is(.tab,.chip){background:transparent;color:var(--muted);border-color:var(--line);border-radius:5px;font-size:13px}
+html.astra .tab.active{color:var(--a-accent);border-color:var(--a-accent);background:#245de20b}
+html.astra .source-view{background:#f0f3f8;color:var(--text);border-color:var(--line)}
+html.astra .content-field{min-height:460px;background:#fcfdff;line-height:1.85}
+html.astra :is(.article.html-preview,.compose-preview.html-preview){padding:0;background:#fff;overflow:hidden}
+html.astra body.reader-mode .topbar{background:var(--bg);backdrop-filter:none}
+html.astra .article blockquote{color:var(--muted)}
+html.astra .key-icon{background:var(--a-soft);color:var(--a-accent);box-shadow:none}
+html.astra[data-astra-site="tbl"] .workspace{grid-template-columns:minmax(0,1fr) 260px;gap:24px}
+html.astra[data-astra-site="tbl"] .upload-panel{padding:24px}
+html.astra .drop-zone{background:#f8fafe;border:1px dashed #aebed7;border-radius:7px;min-height:310px;box-shadow:none}
+html.astra .drop-zone:hover,html.astra .drop-zone.dragover{background:#edf3ff;border-color:var(--a-accent)}
+html.astra .upload-icon{background:var(--a-paper);color:var(--a-accent);box-shadow:none;border:1px solid var(--line);border-radius:12px}
+html.astra .drop-zone h3{color:var(--text);font-size:23px}
+html.astra .drop-zone p{color:var(--muted);font-size:14px}
+html.astra .admin-key-box{background:transparent;border-color:var(--line);border-radius:0;padding:20px 0 0}
+html.astra :is(.admin-key-box label,.admin-key-box small){color:var(--muted)}
+html.astra :is(.history-item,.file-symbol){color:var(--text);background:var(--a-soft);border-color:var(--line);border-radius:6px}
+/* 便签保留两个原主题，Astra 是额外的干净信纸。 */
+html.astra[data-astra-site="note"]{--ink:#f6f7f9;--paper:#fff;--text-dark:#1a2331;--text-light:#1a2331;--muted:#626d7d;--teal:#245de2;--teal-dark:#1948b5;--seal:#b73849;--seal-dark:#972b3a;--font-display:Inter,"Segoe UI","Microsoft YaHei",sans-serif}
+html.astra[data-astra-site="note"] .topnav{width:min(1180px,calc(100% - 64px));padding:26px 0 22px;border-bottom:1px solid var(--line);gap:20px;flex-wrap:wrap;font-size:13px;letter-spacing:0}
+html.astra[data-astra-site="note"] .topnav .brand{font-family:var(--font-body);font-size:17px;font-weight:600;letter-spacing:0}
+html.astra[data-astra-site="note"] .topnav .brand b{color:var(--a-accent)}
+html.astra[data-astra-site="note"] .topnav nav{gap:18px;flex-wrap:wrap}
+html.astra[data-astra-site="note"] .topnav nav a{margin:0}
+html.astra[data-astra-site="note"] .topnav nav a[style]{color:var(--text)!important}
+html.astra[data-astra-site="note"] .home-wrap{justify-content:flex-start;padding:66px 20px 60px}
+html.astra[data-astra-site="note"] .telegram-title{font-size:clamp(27px,3.8vw,44px);font-weight:600;letter-spacing:-.04em}
+html.astra[data-astra-site="note"] .telegram-sub{margin-bottom:28px;font-size:15px}
+html.astra[data-astra-site="note"] .telegram-card{width:min(520px,100%);padding:28px 34px 34px;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 32px #17233706}
+html.astra[data-astra-site="note"] .perforation{display:none}
+html.astra[data-astra-site="note"] .telegram-card label{font-family:var(--font-body);font-size:13px;color:var(--muted);letter-spacing:0;margin-top:12px}
+html.astra[data-astra-site="note"] .slug-input{font-size:21px;border-bottom:1px solid var(--line);padding:8px 2px}
+html.astra[data-astra-site="note"] .go-btn{background:var(--a-accent);color:#fff;font-family:var(--font-body);font-size:15px;letter-spacing:0;border-radius:6px;margin-top:24px}
+html.astra[data-astra-site="note"] #randomBtn{background:var(--a-soft)!important;color:var(--a-accent)!important;border-radius:5px!important}
+html.astra[data-astra-site="note"] .note-wrap{padding-top:18px}
+html.astra[data-astra-site="note"] :is(.note-bar,.paper-page,.settings-panel){width:min(900px,calc(100% - 40px))}
+html.astra[data-astra-site="note"] .paper-page{border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 30px #17233705}
+html.astra[data-astra-site="note"] .paper-page textarea{padding:36px 44px 40px;font-size:17px;line-height:1.95;background:none}
+html.astra[data-astra-site="note"] .postmark{border:0;padding:0;color:var(--muted)}
+html.astra[data-astra-site="note"] .icon-btn{color:var(--text);background:var(--a-paper);border:1px solid var(--line);border-radius:6px;font-size:13px}
+html.astra[data-astra-site="note"] .icon-btn.seal{color:var(--red);border-color:#e4c4cb;background:#fff}
+html.astra[data-astra-site="note"] .settings-panel{background:var(--a-paper);border:1px solid var(--line);border-radius:6px}
+html.astra[data-astra-site="note"] .settings-panel input[type=text]{background:var(--a-soft);border-color:var(--line)}
+html.astra[data-astra-site="note"] .save-status{color:var(--muted);font-size:12px}
+html.astra[data-astra-site="note"] .wax-seal{box-shadow:none;background:var(--a-accent);border-radius:12px;color:#fff}
+/* 账号弹窗也跟随外观，账号权限和登录逻辑不变。 */
+html.astra .ca-card{background:var(--a-paper);color:var(--text);border:1px solid var(--line);border-radius:10px;box-shadow:0 24px 80px #0004}
+html.astra .ca-card p{color:var(--muted);font-size:14px}
+html.astra .ca-field{background:var(--bg);color:var(--text);border-color:var(--line);border-radius:6px;font-size:16px}
+html.astra .ca-button{background:var(--a-soft);color:var(--text);border-color:var(--line);border-radius:6px;font-size:14px;font-weight:500}
+html.astra .ca-button.primary{background:var(--a-accent);color:var(--a-on-accent)}
+html.astra .ca-user{background:var(--bg);border-color:var(--line);border-radius:6px}
+/* 小屏和放大文字时，控件换行，不挤掉姓名与主要操作。 */
+@media(min-width:1000px){
+ html.astra[data-astra-site="mk"] .editor:has(.compose-preview.show){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 20px}
+ html.astra[data-astra-site="mk"] .editor:has(.compose-preview.show)>:not(.content-input):not(.compose-preview){grid-column:1/-1}
+ html.astra[data-astra-site="mk"] .editor:has(.compose-preview.show) .compose-preview{margin:0;min-width:0;padding:20px;overflow:auto}
+ html.astra[data-astra-site="mk"] .editor-shell:has(.compose-preview.show){grid-template-columns:minmax(0,1fr)}
+ html.astra[data-astra-site="mk"] .editor-shell:has(.compose-preview.show) .side{grid-template-columns:1fr 1fr;gap:40px}
+}
+@media(max-width:900px){
+ html.astra :is(.page,.app){width:calc(100% - 40px)}
+ html.astra :is(.editor-shell,.workspace){grid-template-columns:minmax(0,1fr)!important}
+ html.astra .side{grid-template-columns:1fr 1fr;gap:24px}
+ html.astra[data-astra-site="cla"] .hero{padding-right:145px}
+ html.astra[data-astra-site="cla"] .hero:after{font-size:115px;top:38px}
+ html.astra[data-astra-site="cla"] .sites{grid-template-columns:1.1fr 1fr}
+ html.astra:is([data-astra-site="sco"],[data-astra-site="goal"]) .hero{grid-template-columns:1fr;gap:16px}
+ html.astra .students{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}
+ html.astra[data-astra-site="pk"] .hero-panel{grid-template-columns:1fr;gap:15px}
+ html.astra[data-astra-site="pk"] .dashboard-grid{grid-template-columns:1fr}
+ html.astra[data-astra-site="pk"] .match-surface{order:-1}
+ html.astra[data-astra-site="pk"] .name-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+@media(max-width:600px){
+ html.astra :is(.page,.app),html.astra[data-astra-site="document"] .page{width:calc(100% - 32px);padding-top:18px}
+ html.astra :is(.top,.topbar,header){align-items:flex-start;gap:15px}
+ html.astra :is(.top-actions,.actions,.security-tools){max-width:none;gap:7px}
+ html.astra :is(.top,.topbar)>:is(.top-actions,.security-tools,.astra-header-actions),html.astra header>.actions{width:100%;justify-content:flex-start}
+ html.astra .brand p{display:none}
+ html.astra .hero{padding:28px 0 22px}
+ html.astra .hero p{font-size:14px}
+ html.astra[data-astra-site="main"] .hero{padding:40px 0 28px}
+ html.astra[data-astra-site="main"] .hero h2{font-size:38px}
+ html.astra[data-astra-site="main"] .sites{grid-template-columns:1fr;gap:24px}
+ html.astra[data-astra-site="main"] .card{min-height:0;padding-bottom:51px}
+ html.astra[data-astra-site="main"] .card h3{margin-top:18px}
+ html.astra[data-astra-site="main"] .astra-specimen{height:170px}
+ html.astra[data-astra-site="cla"] .hero{padding:30px 0 28px;min-height:0}
+ html.astra[data-astra-site="cla"] .hero:after{display:none}
+ html.astra[data-astra-site="cla"] .hero h2{font-size:35px}
+ html.astra[data-astra-site="cla"] .sites{grid-template-columns:1fr}
+ html.astra[data-astra-site="cla"] .card.pk{grid-row:auto;padding:28px;min-height:270px}
+ html.astra[data-astra-site="cla"] .card.pk h3{font-size:32px}
+ html.astra .side{grid-template-columns:1fr}
+ html.astra :is(.editor,.feedback-panel){padding:18px}
+ html.astra .editor-foot{flex-wrap:wrap}
+ html.astra .article{padding:26px 20px;font-size:16px}
+ html.astra .copy-row{grid-template-columns:minmax(0,1fr) auto}
+ html.astra .copy-row label{grid-column:1/-1}
+ html.astra .copy-row input{min-width:0}
+ html.astra .content-input{min-height:350px;padding:14px}
+ html.astra[data-astra-site="tbl"] .upload-panel{padding:16px}
+ html.astra .drop-zone{min-height:280px;padding:24px 14px}
+ html.astra .drop-zone h3{font-size:20px}
+ html.astra .student{min-height:76px;gap:7px}
+ html.astra .student .name{font-size:15px}
+ html.astra .student .score{font-size:24px}
+ html.astra .students{gap:0 14px}
+ html.astra .toolbar{flex-wrap:wrap;align-items:stretch}
+ html.astra .toolbar .search{max-width:none;width:100%}
+ html.astra .mode{width:auto;order:0}
+ html.astra .actions .label{display:inline}
+ html.astra[data-astra-site="pk"] :is(.container,.topbar,.site-credit){width:calc(100% - 32px)}
+ html.astra[data-astra-site="pk"] .topbar{padding:18px 0}
+ html.astra[data-astra-site="pk"] .name-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ html.astra[data-astra-site="pk"] .surface{padding:17px}
+ html.astra[data-astra-site="pk"] .roster-surface{padding:15px 0}
+ html.astra[data-astra-site="pk"] .pk-item{gap:7px;padding:16px 0}
+ html.astra[data-astra-site="pk"] :is(.pk-self,.pk-opp){font-size:16px;min-width:55px}
+ html.astra[data-astra-site="pk"] .actions{grid-template-columns:1fr 1fr}
+ html.astra[data-astra-site="note"] .topnav{width:calc(100% - 32px);padding:20px 0}
+ html.astra[data-astra-site="note"] .topnav nav{width:100%;justify-content:flex-start;gap:14px}
+ html.astra[data-astra-site="note"] .home-wrap{padding:40px 16px}
+ html.astra[data-astra-site="note"] .telegram-card{padding:22px}
+ html.astra[data-astra-site="note"] .paper-page textarea{padding:24px 20px 40px;font-size:16px}
+ html.astra[data-astra-site="note"] .note-actions{flex-wrap:wrap;gap:6px}
+ html.astra .home{font-size:14px}
+ html.astra .home:after{display:none}
+}
+@media(prefers-reduced-motion:reduce){html.astra *,html.astra *:before,html.astra *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+</style>
+<script id="astra-theme">
+/* Astra 外观层。切换只更新页面属性，不重新加载、不触碰业务数据。 */
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  var site = root.getAttribute('data-astra-site');
+  var isNote = site === 'note';
+  var storageKey = 'lernicks_design_v1';
+  var meta = document.querySelector('meta[name="theme-color"]');
+  var oldColor = meta ? meta.content : '#07111f';
+  var choices = isNote ? [['astra', '新版'], ['classic', '经典'], ['tech', '科技']] : [['astra', '新版'], ['original', '原版']];
+  function valid(value) { return choices.some(function (item) { return item[0] === value; }); }
+  var selected = 'astra';
+  try {
+    var stored = localStorage.getItem(storageKey);
+    if (valid(stored)) selected = stored;
+    // 保留笔记使用者之前明确选过的经典 / 科技偏好。
+    else if (isNote && !stored) {
+      var previous = localStorage.getItem('tg_note_theme_v1');
+      if (previous === 'classic' || previous === 'tech') selected = previous;
+    }
+  } catch (_) {}
+  function apply(value, save) {
+    if (!valid(value)) return;
+    selected = value;
+    root.setAttribute('data-design', value);
+    root.classList.toggle('astra', value === 'astra');
+    if (isNote) root.setAttribute('data-note-theme', value === 'tech' ? 'tech' : 'classic');
+    if (meta) meta.content = value === 'astra' ? '#f6f7f9' : (isNote ? (value === 'tech' ? '#050b14' : '#12203a') : oldColor);
+    document.querySelectorAll('[data-design-picker]').forEach(function (input) { input.value = value; });
+    if (save) {
+      try {
+        localStorage.setItem(storageKey, value);
+        if (isNote && value !== 'astra') localStorage.setItem('tg_note_theme_v1', value);
+      } catch (_) {}
+    }
+    window.dispatchEvent(new CustomEvent('lernicks-design-change', { detail: { design: value } }));
+  }
+  apply(selected, false);
+  function mount() {
+    var target = isNote ? document.querySelector('.topnav nav') : document.querySelector('.top-actions, .security-tools, header .actions');
+    if (!target) {
+      var header = document.querySelector('header.topbar, .top');
+      if (!header) return;
+      target = document.createElement('div');
+      target.className = 'astra-header-actions';
+      var home = header.querySelector('.home, .home-link');
+      if (home) target.appendChild(home);
+      header.appendChild(target);
+    }
+    if (target.querySelector('[data-design-picker]')) return;
+    var label = document.createElement('label');
+    label.className = 'design-switch';
+    var text = document.createElement('span');
+    text.textContent = '外观';
+    var input = document.createElement('select');
+    input.setAttribute('data-design-picker', '');
+    input.setAttribute('aria-label', '网站外观');
+    choices.forEach(function (item) {
+      var option = document.createElement('option');
+      option.value = item[0]; option.textContent = item[1]; input.appendChild(option);
+    });
+    input.value = selected;
+    label.appendChild(text); label.appendChild(input); target.appendChild(label);
+  }
+  document.addEventListener('change', function (event) {
+    if (event.target.matches('[data-design-picker]')) apply(event.target.value, true);
+  });
+  window.addEventListener('storage', function (event) {
+    if (event.key === storageKey && valid(event.newValue)) apply(event.newValue, false);
+  });
+  document.addEventListener('DOMContentLoaded', function () {
+    mount();
+    if (isNote) {
+      var app = document.getElementById('app');
+      if (app) new MutationObserver(mount).observe(app, { childList: true, subtree: true });
+    }
+    if (site === 'pk') {
+      // 由现有成绩文字生成新版记分牌；原文字保留，原版仍可直接显示。
+      function scoreboards() {
+        document.querySelectorAll('.pk-item').forEach(function (row) {
+          if (row.querySelector('.astra-scoreboard')) return;
+          var versus = row.querySelector('.pk-vs');
+          var self = row.querySelector('.pk-self');
+          var opponent = row.querySelector('.pk-opp');
+          var scores = versus && versus.textContent.match(/^\((\d+(?:\.\d+)?)\) PK \((\d+(?:\.\d+)?)\)$/);
+          if (!scores || !self || !opponent) return;
+          var board = document.createElement('div');
+          board.className = 'astra-scoreboard astra-only';
+          function competitor(name, score) {
+            var side = document.createElement('div');
+            var label = document.createElement('span'); label.textContent = name;
+            var value = document.createElement('strong'); value.textContent = score;
+            side.appendChild(label); side.appendChild(value); return side;
+          }
+          board.appendChild(competitor(self.textContent, scores[1]));
+          var vs = document.createElement('em'); vs.textContent = 'VS'; board.appendChild(vs);
+          board.appendChild(competitor(opponent.textContent, scores[2]));
+          Array.from(row.children).forEach(function (child) {
+            if (!child.classList.contains('score-info')) child.setAttribute('data-astra-score-source', '');
+          });
+          row.appendChild(board);
+        });
+      }
+      scoreboards();
+      ['.container', '#dlgContainer'].forEach(function (selector) {
+        var container = document.querySelector(selector);
+        if (container) new MutationObserver(scoreboards).observe(container, { childList: true, subtree: true });
+      });
+    }
+  });
+  window.LernicksDesign = { set: function (value) { apply(value, true); }, get: function () { return selected; } };
+})();
+
+</script>
+<!-- ASTRA HEAD END -->
+<!-- FOLIO START -->
+<style id="folio-style">
+/* Folio · 2026-10. Scoped to the four public tools and their existing new theme. */
+.folio-only{display:none!important}
+html.astra[data-folio] .folio-only{display:block!important}
+html.astra[data-folio]{--bg:#f7f6f2;--panel:#fffefa;--text:#252822;--muted:#6d7168;--line:#dedfd5;--article:#363a32;--a-paper:#fffefa;--a-soft:#eeeee6;--a-ink:#252822;--a-accent:#b34c2b;--a-on-accent:#fff;--f-accent:#b34c2b;--f-tint:#f4e8df;--f-serif:Georgia,"Noto Serif SC","Songti SC",SimSun,serif;--red:#a63e36;--status:#397052;color-scheme:light}
+html.astra[data-folio="tbl"]{--a-accent:#356c53;--f-accent:#356c53;--f-tint:#e8eee5}
+html.astra:is([data-folio="mk"],[data-folio="document"]){--a-accent:#70538c;--f-accent:#70538c;--f-tint:#eee8f1}
+html.astra[data-folio] body{background:var(--bg);color:var(--text);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.7}
+html.astra[data-folio] ::selection{background:var(--f-tint);color:var(--text)}
+html.astra[data-folio] :is(.page,.app){width:min(1180px,calc(100% - 80px));padding:28px 0 30px}
+html.astra[data-folio] :is(.topbar,.topnav){padding:0 0 24px;border-bottom:1px solid var(--line);gap:20px;flex-wrap:wrap}
+html.astra[data-folio] .brand{gap:12px}
+html.astra[data-folio] :is(.brand h1,.brand strong){font-size:18px;font-weight:650;letter-spacing:-.04em}
+html.astra[data-folio] :is(.mark,.logo){border-radius:50%;width:42px;height:42px;flex-basis:42px;background:var(--text);font:italic 24px var(--f-serif);color:var(--bg)}
+html.astra[data-folio] .logo{font:600 17px/1 "Segoe UI",sans-serif}
+html.astra[data-folio] :is(.brand p,.brand span){font:10px/1.5 Consolas,monospace;letter-spacing:.13em;color:var(--muted)}
+html.astra[data-folio] :is(.top-actions,.astra-header-actions){gap:12px}
+html.astra[data-folio] :is(.nav-btn,.home,.home-link){background:transparent;border:0;padding:8px 0;font-size:13px;color:var(--muted);text-decoration:none}
+html.astra[data-folio] :is(.nav-btn,.home,.home-link):hover{color:var(--f-accent);background:transparent}
+html.astra[data-folio] .design-switch{font-size:11px;gap:6px;color:var(--muted)}
+html.astra[data-folio] .design-switch select{font-size:12px;min-height:34px;border-radius:6px;background:transparent;padding:6px 24px 6px 8px;border-color:var(--line)}
+html.astra[data-folio] .folio-nav{display:flex!important;gap:22px;align-items:center;margin-left:auto}
+html.astra[data-folio] .folio-nav a{font-size:13px;text-decoration:none;color:var(--muted);white-space:nowrap}
+html.astra[data-folio] .folio-nav a:hover,html.astra[data-folio] .folio-nav a[aria-current="page"]{color:var(--f-accent)}
+html.astra[data-folio] .folio-nav a[aria-current="page"]:before{content:"";display:inline-block;width:5px;height:5px;background:var(--f-accent);border-radius:50%;margin-right:7px;vertical-align:middle}
+html.astra[data-folio] .eyebrow{color:var(--f-accent);font:11px/1.6 Consolas,monospace;letter-spacing:.16em}
+html.astra[data-folio] .hero{padding:45px 0 28px;text-align:left}
+html.astra[data-folio] .hero h2{font-size:clamp(30px,3.5vw,44px);font-weight:600;letter-spacing:-.065em;line-height:1.3;margin:14px 0}
+html.astra[data-folio] .hero p{font-size:14px;max-width:650px;line-height:1.9;color:var(--muted)}
+html.astra[data-folio] :is(.panel,.feedback-panel,.editor,.key-gate){border:1px solid var(--line);background:var(--a-paper);border-radius:12px;box-shadow:0 3px 0 #25282203}
+html.astra[data-folio] :is(.btn,.file-button,.preview-toggle,.copy-row button){border-radius:7px;background:transparent;border-color:var(--line);color:var(--text);font-size:13px;min-height:40px}
+html.astra[data-folio] :is(.btn.primary,.create-button,.submit-btn,.choose,.preview-toggle.active){background:var(--f-accent);color:#fff;border-radius:7px;border-color:var(--f-accent);font-weight:600;box-shadow:none}
+html.astra[data-folio] :is(.btn.primary,.create-button,.submit-btn,.choose,.go-btn):hover{filter:brightness(.92)}
+html.astra[data-folio] :is(.btn.danger,.btn-danger){background:transparent;color:var(--red);border-color:#dfb9b3}
+html.astra[data-folio] :is(.field,.title-input,.admin-key-input,.copy-row input,.feedback-form input,.feedback-form textarea){color:var(--text);background:var(--a-paper);border-color:var(--line);border-radius:7px}
+html.astra[data-folio] :is(.meter,.progress){background:var(--a-soft)}
+html.astra[data-folio] :is(.meter i,.progress-bar){background:var(--f-accent)}
+html.astra[data-folio] :is(.info,.capacity){padding:24px}
+html.astra[data-folio] .side{gap:16px}
+html.astra[data-folio] .side,html.astra[data-folio] .side>*{min-width:0}
+html.astra[data-folio] :is(.tip,.rule)>div{min-width:0;overflow-wrap:anywhere}
+html.astra[data-folio] .side .capacity-head{flex-wrap:wrap;gap:8px}
+html.astra[data-folio] :is(.rule-icon,.tip i){color:var(--f-accent);background:var(--f-tint);border:0;border-radius:50%;box-shadow:none}
+html.astra[data-folio] :is(.info h3,.capacity-head strong,.history h3){font-size:15px;font-weight:600}
+html.astra[data-folio] .mode-badge{color:var(--f-accent);background:var(--f-tint);border:0;font-size:11px;padding:5px 9px;border-radius:5px}
+html.astra[data-folio] .key-warning{background:#f6efdb;border-color:#e4d9bb;color:#705e2c}
+html.astra[data-folio] footer{font-size:11px;padding-top:22px;margin-top:40px;color:var(--muted);letter-spacing:.025em}
+/* Main: an editorial opening, handmade paper specimens, and three equal entries. */
+html.astra[data-folio="main"] .hero{padding:60px 0 50px;min-height:350px;display:grid;grid-template-columns:1.15fr 1fr;column-gap:36px;align-content:center}
+html.astra[data-folio="main"] .hero>.eyebrow{grid-column:1;align-self:end}
+html.astra[data-folio="main"] .hero h2{grid-column:1;font-size:clamp(40px,4.8vw,64px);font-weight:600;line-height:1.22;letter-spacing:-.065em;margin:20px 0;max-width:650px}
+html.astra[data-folio="main"] .hero p{grid-column:1;max-width:470px;font-size:14px}
+html.astra[data-folio="main"] .folio-hero-art{grid-column:2;grid-row:1/4;align-self:center;justify-self:end;width:min(100%,470px);color:var(--text)}
+.folio-hero-art svg{display:block;width:100%;height:auto}
+html.astra[data-folio="main"] .folio-section-label{display:flex!important;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font:10px/1.6 Consolas,monospace;letter-spacing:.12em}
+html.astra[data-folio="main"] .folio-section-label strong{font:500 13px/1.6 "Microsoft YaHei",sans-serif;letter-spacing:0;color:var(--text)}
+html.astra[data-folio="main"] .sites{gap:22px;grid-template-columns:repeat(3,minmax(0,1fr))}
+html.astra[data-folio="main"] .card{--f-card:#b34c2b;--f-card-bg:#f0e4d7;min-height:382px;background:var(--a-paper);border:1px solid var(--line);border-radius:12px;padding:12px 12px 64px;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s}
+html.astra[data-folio="main"] .card.image{--f-card:#356c53;--f-card-bg:#e3eadf}
+html.astra[data-folio="main"] .card.document{--f-card:#70538c;--f-card-bg:#e9e4ed}
+html.astra[data-folio="main"] .card:hover{border-color:var(--f-card);transform:translateY(-4px);box-shadow:0 12px 25px #25282209}
+html.astra[data-folio="main"] .astra-specimen{height:162px;border-radius:7px;background:var(--f-card-bg);color:var(--text);background-image:radial-gradient(#25282218 .7px,transparent .7px);background-size:10px 10px}
+html.astra[data-folio="main"] .spec-sheet{background:#fffefa;width:68%;font-size:12px;line-height:1.8;padding:17px 22px;box-shadow:3px 5px 0 #2528220a;transform:rotate(-7deg)}
+html.astra[data-folio="main"] .spec-sheet small{color:var(--f-card);font-size:9px;margin-bottom:8px;padding-bottom:5px;border-color:var(--line)}
+html.astra[data-folio="main"] .spec-line{background:#e6ded3;margin-top:9px}
+html.astra[data-folio="main"] .document .spec-sheet{transform:rotate(6deg);font-family:var(--f-serif)}
+html.astra[data-folio="main"] .spec-formula{font-size:26px;color:var(--f-card)}
+html.astra[data-folio="main"] .spec-photo{height:116px;border:6px solid #fffefa;background:#c4d4c2;transform:rotate(-6deg);box-shadow:3px 5px 0 #2528220a}
+html.astra[data-folio="main"] .spec-photo:before{background:#7fa17b;bottom:-87px}
+html.astra[data-folio="main"] .spec-photo:after{background:#456d54;bottom:-112px}
+html.astra[data-folio="main"] .spec-file{bottom:17px;right:17px;background:#fffefa;color:#356c53}
+html.astra[data-folio="main"] .card .number{display:block;font:9px/1.5 Consolas,monospace;color:var(--f-card);margin:20px 12px 0;letter-spacing:.08em}
+html.astra[data-folio="main"] .card h3{font-size:21px;margin:8px 12px 9px;letter-spacing:-.045em;font-weight:600}
+html.astra[data-folio="main"] .card p{font-size:12px;line-height:1.85;margin:0 12px}
+html.astra[data-folio="main"] .card>p:not(.folio-copy){display:none}
+html.astra[data-folio="main"] .enter{left:24px;right:24px;bottom:18px;color:var(--f-card);font-size:12px}
+html.astra[data-folio="main"] .arrow{width:29px;height:29px;background:var(--f-card-bg);color:var(--f-card);border-radius:50%}
+html.astra[data-folio="main"] .small-note{margin:22px 0 0;font-size:11px}
+/* Upload: a large calm drop target with the rules in a compact side column. */
+html.astra[data-folio="tbl"] .workspace{grid-template-columns:minmax(0,1fr) 288px;gap:22px}
+html.astra[data-folio="tbl"] .upload-panel{padding:16px}
+html.astra[data-folio="tbl"] .drop-zone{border:1px dashed #afbfaa;border-radius:8px;min-height:325px;background:var(--f-tint);background-image:radial-gradient(#356c531a .7px,transparent .7px);background-size:12px 12px;display:flex;align-items:center;justify-content:center;padding:28px}
+html.astra[data-folio="tbl"] .drop-zone:is(:hover,.dragover){border-color:var(--f-accent);background-color:#dfe9dc}
+html.astra[data-folio="tbl"] .upload-icon{border:1px solid #afbfaa;border-radius:50%;width:58px;height:58px;font-size:27px;background:var(--a-paper);color:var(--f-accent);margin:0 auto 18px;transform:none}
+html.astra[data-folio="tbl"] .drop-zone h3{font-size:23px;font-weight:600;letter-spacing:-.04em}
+html.astra[data-folio="tbl"] .drop-zone p{font-size:12px}
+html.astra[data-folio="tbl"] .choose{display:inline-block;margin-top:8px;padding:10px 26px;font-size:13px}
+html.astra[data-folio="tbl"] .admin-key-box{padding:20px 6px 6px;margin-top:6px}
+html.astra[data-folio="tbl"] .history{padding:24px;margin-top:26px}
+html.astra[data-folio="tbl"] .history-item{background:var(--f-tint);border-radius:8px}
+html.astra[data-folio="tbl"] .result-preview{border-radius:7px}
+/* Compose and read: typography carries the design; mixed content stays intact. */
+html.astra[data-folio="mk"] .editor-shell{grid-template-columns:minmax(0,1fr) 288px;gap:22px}
+html.astra[data-folio="mk"] .editor{padding:26px}
+html.astra[data-folio="mk"] .title-input{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;font-size:24px;font-weight:500;padding:10px 0 16px}
+html.astra[data-folio="mk"] .field-label{font-size:11px;line-height:1.8}
+html.astra[data-folio="mk"] .content-input{background:#faf9f6;border:1px solid var(--line);border-radius:8px;min-height:340px;font:14px/1.95 Consolas,"Microsoft YaHei",monospace;padding:22px;color:var(--text)}
+html.astra[data-folio="mk"] .mode-row{margin:16px 0 22px}
+html.astra[data-folio="mk"] .compose-preview{background:var(--a-paper);border-color:var(--line);border-radius:8px}
+html.astra[data-folio="mk"] .editor-foot{padding-top:20px}
+html.astra[data-folio="mk"] .create-button{font-size:13px;padding:12px 22px}
+html.astra[data-folio="document"] .page,html.astra[data-folio="document"] body.reader-mode .page{width:min(1060px,calc(100% - 64px))}
+html.astra[data-folio="document"] .document-head{padding:46px 0 26px}
+html.astra[data-folio="document"] .document-head h1{font-family:var(--f-serif);font-size:clamp(28px,3.8vw,44px);font-weight:600;letter-spacing:-.025em}
+html.astra[data-folio="document"] .article{background:var(--a-paper);border:1px solid var(--line);border-radius:10px;padding:42px clamp(22px,5vw,68px);font-size:16px;line-height:2;color:var(--article)}
+html.astra[data-folio] :is(.article pre,.article code,.compose-preview pre,.compose-preview code){background:var(--a-soft);color:#484e43;border-color:var(--line)}
+html.astra[data-folio] .article blockquote{border-color:var(--f-accent);background:var(--f-tint);color:var(--muted)}
+html.astra[data-folio] .tab.active{background:var(--f-tint);border-color:var(--f-accent);color:var(--f-accent)}
+html.astra[data-folio="document"] .chip{background:var(--f-tint);color:var(--f-accent);border:0}
+html.astra[data-folio="document"] .reader-tools{gap:14px;flex-wrap:wrap}
+html.astra[data-folio="document"] body.reader-mode .reader-tools{background:var(--bg);border:0;border-bottom:1px solid var(--line);border-radius:0;backdrop-filter:none;padding:12px 0;box-shadow:none}
+html.astra[data-folio="document"] .document-head .meta{justify-content:flex-start;color:var(--muted)}
+html.astra[data-folio="document"] .key-gate{padding:36px}
+html.astra[data-folio="document"] .key-icon{color:var(--f-accent);background:var(--f-tint)}
+html.astra[data-folio="document"] .content-field{background:#faf9f6;border-color:var(--line);color:var(--text)}
+html.astra[data-folio="document"] :is(.article.html-preview,.compose-preview.html-preview){padding:0;background:#fff}
+/* Notes: a letter on the desk, with its original two appearances still available. */
+html.astra[data-folio="note"]{--ink:#f7f6f2;--paper:#fffefa;--text-dark:#252822;--text-light:#252822;--teal:#b34c2b;--teal-dark:#943b20;--seal:#a63e36;--seal-dark:#89362f;--font-display:"Segoe UI","Microsoft YaHei",sans-serif}
+html.astra[data-folio="note"] .topnav{width:min(1180px,calc(100% - 80px));padding:28px 0 24px}
+html.astra[data-folio="note"] .topnav .brand{font-size:17px;letter-spacing:-.035em;white-space:nowrap}
+html.astra[data-folio="note"] .topnav .brand b{color:var(--text)}
+html.astra[data-folio="note"] .folio-note-brand{display:flex!important;align-items:center;gap:12px;font:600 17px "Segoe UI","Microsoft YaHei",sans-serif;letter-spacing:-.04em}
+html.astra[data-folio="note"] .folio-note-brand i{display:grid;place-items:center;border-radius:50%;width:42px;height:42px;background:var(--text);color:var(--bg);font:italic 24px var(--f-serif)}
+html.astra[data-folio="note"] .folio-note-brand>span{font:inherit;color:var(--text);letter-spacing:inherit}
+html.astra[data-folio="note"] .topnav>nav:not(.folio-nav){order:3;margin-left:0}
+html.astra[data-folio="note"] .topnav>.folio-nav{order:2;margin-left:auto}
+html.astra[data-folio="note"] .topnav nav{gap:20px;width:auto}
+html.astra[data-folio="note"] .topnav nav a{font-size:12px;color:var(--muted)}
+html.astra[data-folio="note"] .home-wrap{width:min(1180px,calc(100% - 80px));display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto;align-content:center;align-items:center;gap:0 80px;padding:95px 0 105px;position:relative;flex:1}
+html.astra[data-folio="note"] .telegram-title{grid-column:1;grid-row:1;text-align:left;font-size:clamp(32px,4.4vw,54px);font-weight:600;line-height:1.3;letter-spacing:-.07em;max-width:510px;margin:0 0 22px;align-self:end}
+html.astra[data-folio="note"] .telegram-sub{grid-column:1;grid-row:2;text-align:left;font-size:14px;line-height:1.9;max-width:390px;margin:0;align-self:start}
+html.astra[data-folio="note"] .home-hint{grid-column:1;grid-row:3;text-align:left;font-size:11px;line-height:1.8;max-width:390px;margin:32px 0 0;align-self:start}
+html.astra[data-folio="note"] .telegram-card{grid-column:2;grid-row:1/4;width:100%;max-width:490px;justify-self:end;padding:50px 34px 34px;border-radius:2px;transform:rotate(2deg);border-color:#e0d5c4;box-shadow:8px 10px 0 #e8e3d8;background:#fffefa;min-height:280px}
+html.astra[data-folio="note"] .telegram-card:before{content:"01 / A LITTLE LETTER";display:block;font:10px/1.5 Consolas,monospace;color:var(--f-accent);letter-spacing:.13em;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:24px}
+html.astra[data-folio="note"] .telegram-card:after{content:"L.";position:absolute;right:25px;top:18px;font:italic 24px/1.5 var(--f-serif);color:var(--f-accent)}
+html.astra[data-folio="note"] .telegram-card label{font-size:11px;margin-top:0}
+html.astra[data-folio="note"] .slug-input{font-size:17px;min-width:0;line-height:1.6;color:var(--text);border-color:#d6c5b0}
+html.astra[data-folio="note"] #randomBtn{background:var(--f-tint)!important;color:var(--f-accent)!important;min-height:40px;border-radius:6px!important;padding:8px 12px!important;font-size:12px!important}
+html.astra[data-folio="note"] .go-btn{background:var(--f-accent);border-radius:6px;letter-spacing:0;font:600 14px/1.5 "Segoe UI","Microsoft YaHei",sans-serif;padding:13px;color:#fff}
+html.astra[data-folio="note"] :is(.note-bar,.paper-page,.settings-panel){width:min(900px,calc(100% - 80px))}
+html.astra[data-folio="note"] .paper-page{border-radius:8px;border-color:var(--line);box-shadow:4px 6px 0 #e8e3d8}
+html.astra[data-folio="note"] .paper-page textarea{padding:38px 46px 48px;color:var(--text);font-size:17px;line-height:2}
+html.astra[data-folio="note"] .icon-btn{background:var(--a-paper);color:var(--text);border-color:var(--line);border-radius:6px;font-size:12px;min-height:40px}
+html.astra[data-folio="note"] .icon-btn.seal{color:var(--red);background:var(--a-paper)}
+html.astra[data-folio="note"] #destroyBtn{background:#f4e5e1!important;color:var(--red)}
+html.astra[data-folio="note"] .postmark{font-size:12px;color:var(--muted)}
+html.astra[data-folio="note"] .postmark .dot{background:var(--f-accent)}
+html.astra[data-folio="note"] .settings-panel{background:var(--a-paper);color:var(--text);border-color:var(--line);border-radius:8px}
+html.astra[data-folio="note"] .settings-panel .row{flex-wrap:wrap}
+html.astra[data-folio="note"] .settings-panel input[type=text]{min-width:0;background:var(--bg);color:var(--text);border-color:var(--line)}
+html.astra[data-folio="note"] .gate-card{border:1px solid var(--line);border-radius:10px;background:var(--a-paper);box-shadow:6px 8px 0 #e8e3d8}
+html.astra[data-folio="note"] .gate-card input{color:var(--text);border-color:var(--line)}
+html.astra[data-folio="note"] .wax-seal{background:var(--f-tint);color:var(--f-accent);border:1px solid var(--line);border-radius:50%}
+html.astra[data-folio="note"] .fb-card{border:1px solid var(--line);border-radius:10px;background:var(--a-paper);box-shadow:none}
+html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){color:var(--text);background:var(--a-paper);border-color:var(--line)}
+@media(max-width:1000px){
+ html.astra[data-folio] :is(.page,.app){width:calc(100% - 48px)}
+ html.astra[data-folio] .folio-nav{gap:14px}
+ html.astra[data-folio="main"] .hero{column-gap:10px;padding:45px 0 35px;min-height:310px}
+ html.astra[data-folio="main"] .hero h2{font-size:46px}
+ html.astra[data-folio="main"] .sites{gap:14px}
+ html.astra[data-folio="main"] .card h3{font-size:18px}
+ html.astra[data-folio="note"] :is(.topnav,.home-wrap){width:calc(100% - 48px)}
+ html.astra[data-folio="note"] .home-wrap{gap:0 40px}
+ html.astra[data-folio="note"] .telegram-card{padding:40px 25px 28px}
+}
+@media(max-width:760px){
+ html.astra[data-folio] :is(.page,.app){width:calc(100% - 36px);padding:20px 0 24px}
+ html.astra[data-folio] :is(.topbar,.topnav){gap:15px;padding-bottom:18px}
+ html.astra[data-folio] .folio-nav{order:3;width:100%;margin:0;gap:22px}
+ html.astra[data-folio] :is(.top-actions,.astra-header-actions){margin-left:auto;gap:10px}
+ html.astra[data-folio] :is(.brand h1,.brand strong){font-size:16px}
+ html.astra[data-folio] .hero{padding:32px 0 22px}
+ html.astra[data-folio="main"] .hero{grid-template-columns:1fr;padding:36px 0 28px;min-height:0}
+ html.astra[data-folio="main"] .hero h2{font-size:clamp(36px,8vw,50px);margin:16px 0}
+ html.astra[data-folio="main"] .folio-hero-art{grid-column:1;grid-row:auto;width:270px;justify-self:center;margin:14px 0 -5px}
+ html.astra[data-folio="main"] .sites{grid-template-columns:1fr;gap:18px}
+ html.astra[data-folio="main"] .card{min-height:360px}
+ html.astra[data-folio="main"] .card h3{font-size:22px}
+ html.astra[data-folio="main"] .astra-specimen{height:170px}
+ html.astra[data-folio="main"] .card p{font-size:13px}
+ html.astra[data-folio="main"] .folio-section-label span{display:none}
+ html.astra[data-folio="tbl"] .workspace,html.astra[data-folio="mk"] .editor-shell{grid-template-columns:1fr;gap:18px}
+ html.astra[data-folio="mk"] .editor{padding:20px}
+ html.astra[data-folio="mk"] .content-input{padding:16px;min-height:340px}
+ html.astra[data-folio="mk"] .mode-row{flex-wrap:wrap;gap:12px}
+ html.astra[data-folio="mk"] :is(.field-label,.editor-foot){flex-wrap:wrap;gap:10px}
+ html.astra[data-folio="mk"] .field-label #contentHint{flex:1;min-width:110px}
+ html.astra[data-folio="mk"] .preview-toggle{flex-shrink:0;white-space:nowrap}
+ html.astra[data-folio="mk"] .mode-badge{white-space:normal;max-width:100%}
+ html.astra[data-folio="mk"] .editor-shell>*{min-width:0}
+ html.astra[data-folio] :is(.copy-row,.key-row){flex-wrap:wrap}
+ html.astra[data-folio] .copy-row input{min-width:0}
+ html.astra[data-folio="document"] .page,html.astra[data-folio="document"] body.reader-mode .page{width:calc(100% - 32px)}
+ html.astra[data-folio="document"] .article{padding:26px 20px;overflow-wrap:anywhere}
+ html.astra[data-folio="document"] .reader-tools .right{flex-wrap:wrap}
+ html.astra[data-folio="document"] .key-gate{padding:28px 20px}
+ html.astra[data-folio="note"] .topnav{width:calc(100% - 36px);padding:20px 0 18px}
+ html.astra[data-folio="note"] .topnav nav{width:100%;justify-content:flex-start;gap:16px;flex-wrap:wrap}
+ html.astra[data-folio="note"] .topnav .folio-nav{width:auto;order:0;margin-left:auto}
+ html.astra[data-folio="note"] .topnav nav>.design-switch{margin-left:auto}
+ html.astra[data-folio="note"] .home-wrap{width:calc(100% - 40px);display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:46px 0 60px;gap:0}
+ html.astra[data-folio="note"] .telegram-title{font-size:36px;line-height:1.35;margin:0 0 18px;align-self:stretch}
+ html.astra[data-folio="note"] .telegram-sub{font-size:13px;margin:0 0 35px}
+ html.astra[data-folio="note"] .telegram-card{width:calc(100% - 6px);max-width:none;min-height:0;transform:rotate(1deg);padding:30px 24px;align-self:center}
+ html.astra[data-folio="note"] .home-hint{margin-top:30px;font-size:11px;order:4}
+ html.astra[data-folio="note"] :is(.note-bar,.paper-page,.settings-panel){width:calc(100% - 36px)}
+ html.astra[data-folio="note"] .paper-page textarea{padding:28px 24px 48px}
+ html.astra[data-folio="note"] .note-actions{flex-wrap:wrap;gap:7px}
+ html.astra[data-folio="note"] .slug-input{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){html.astra[data-folio] *,html.astra[data-folio] *:before,html.astra[data-folio] *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+</style>
+<script id="folio-design">
+/* Presentation only: never reads or writes note, document, account, or upload data. */
+(function(){
+ 'use strict';
+ var root=document.documentElement,site=root.getAttribute('data-astra-site');
+ if(['main','note','tbl','mk','document'].indexOf(site)<0)return;
+ root.setAttribute('data-folio',site);
+ var links=[['note','便签','https://note.lernicks.cn'],['tbl','图床','https://tbl.lernicks.cn'],['mk','文档','https://mk.lernicks.cn']];
+ var art='<svg viewBox="0 0 470 290" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="folio-dots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#c6c9ba"/></pattern></defs><ellipse cx="240" cy="152" rx="202" ry="123" fill="url(#folio-dots)"/><g transform="translate(259 51) rotate(9)"><rect x="5" y="7" width="155" height="184" rx="3" fill="#e5e0d8"/><rect width="155" height="184" rx="3" fill="#fffefa" stroke="#d8d5cd"/><path d="M20 37h115M20 111h115M20 130h92M20 149h105" stroke="#d8d5cd"/><text x="20" y="26" fill="#70538c" font-size="9" font-family="monospace">03 / DOCUMENT</text><text x="77" y="84" text-anchor="middle" fill="#70538c" font-size="27" font-family="Georgia" font-style="italic">E = mc²</text></g><g transform="translate(43 75) rotate(-10)"><rect x="5" y="7" width="165" height="156" rx="3" fill="#e5e0d8"/><rect width="165" height="156" rx="3" fill="#fffefa" stroke="#d8d5cd"/><text x="18" y="27" fill="#b34c2b" font-size="9" font-family="monospace">01 / A LITTLE NOTE</text><path d="M18 40h129M18 88h129M18 106h115M18 124h126" stroke="#d8d5cd"/><text x="18" y="70" fill="#474b40" font-size="14" font-family="Microsoft YaHei">把灵感留在这里。</text><circle cx="139" cy="16" r="10" fill="#f0e4d7"/><text x="135" y="20" font-size="12" fill="#b34c2b" font-family="Georgia" font-style="italic">L</text></g><g transform="translate(169 122) rotate(5)"><rect x="5" y="7" width="154" height="134" rx="3" fill="#d7d9cb"/><rect width="154" height="134" rx="3" fill="#fffefa" stroke="#d8d5cd"/><rect x="9" y="9" width="136" height="99" fill="#d1ddc9"/><circle cx="113" cy="33" r="13" fill="#f2dca6"/><path d="M9 108V83l37-36 55 61" fill="#91af86"/><path d="M46 108l59-60 40 29v31" fill="#4c7358"/><text x="15" y="123" fill="#356c53" font-size="8" font-family="monospace">02 / A MOMENT TO SHARE</text></g><path d="M97 33q20-13 37-2m-10-10 10 10-14 9M391 255q-15 18-37 14m10 10-10-10 13-8" fill="none" stroke="#a2a88f" stroke-width="1.5" stroke-linecap="round"/></svg>';
+ function enhance(){
+  var header=document.querySelector(site==='note'?'.topnav':'.topbar');
+  if(header&&!header.querySelector('.folio-nav')){
+   var nav=document.createElement('nav');nav.className='folio-nav folio-only';nav.setAttribute('aria-label','Lernicks 工具');
+   links.forEach(function(item){var a=document.createElement('a');a.href=item[2];a.textContent=item[1];if(site===item[0]||(site==='document'&&item[0]==='mk'))a.setAttribute('aria-current','page');nav.appendChild(a)});
+   var actions=header.querySelector('.top-actions,.astra-header-actions');header.insertBefore(nav,actions||null);
+  }
+  if(site==='main'){
+   var hero=document.querySelector('.hero');
+   if(hero&&!hero.querySelector('.folio-hero-art')){var drawing=document.createElement('div');drawing.className='folio-hero-art folio-only';drawing.setAttribute('aria-hidden','true');drawing.innerHTML=art;hero.appendChild(drawing)}
+   var title=document.getElementById('astra-main-title');if(title&&!title.hasAttribute('data-folio-title')){title.innerHTML='小小工具，<br>装下你的灵感。';title.setAttribute('data-folio-title','')}
+   var sites=document.querySelector('.sites');if(sites&&!document.querySelector('.folio-section-label')){var label=document.createElement('div');label.className='folio-section-label folio-only';label.innerHTML='<strong>从这里，开始一件小事</strong><span>THE EVERYDAY COLLECTION / 01—03</span>';sites.before(label)}
+   [['note','便签电报','给一段话起个名字。随写随存，用链接分享，也可以设置访问密码。'],['image','公共图床','拖入或粘贴一张图片。获取直链，让眼前的画面出现在任何地方。'],['document','混合文档','把文字、公式和 HTML 写在同一页。认真排版，轻松分享。']].forEach(function(item){var card=document.querySelector('.card.'+item[0]);if(card&&!card.querySelector('.folio-copy')){var heading=card.querySelector('h3 .astra-only');if(heading)heading.textContent=item[1];var p=document.createElement('p');p.className='folio-copy folio-only';p.textContent=item[2];var old=card.querySelector('p');if(old)old.after(p)}});
+  }
+  if(site==='note'){
+   var noteTitle=document.querySelector('.telegram-title');if(noteTitle&&!noteTitle.hasAttribute('data-folio-title')){var original=noteTitle.textContent;noteTitle.innerHTML='';var old=document.createElement('span');old.className='legacy-only';old.textContent=original;noteTitle.appendChild(old);var fresh=document.createElement('span');fresh.className='folio-only';fresh.innerHTML='写点什么，<br>给需要的人。';noteTitle.appendChild(fresh);noteTitle.setAttribute('data-folio-title','')}
+   var brand=header&&header.querySelector('.brand');if(brand&&!brand.querySelector('.folio-note-brand')){var oldBrand=document.createElement('span');oldBrand.className='legacy-only';while(brand.firstChild)oldBrand.appendChild(brand.firstChild);brand.appendChild(oldBrand);var newBrand=document.createElement('span');newBrand.className='folio-note-brand folio-only';newBrand.innerHTML='<i aria-hidden="true">L.</i><span>便签电报</span>';brand.appendChild(newBrand)}
+  }
+  var meta=document.querySelector('meta[name="theme-color"]');if(meta&&root.classList.contains('astra'))meta.content='#f7f6f2';
+ }
+ document.addEventListener('DOMContentLoaded',function(){enhance();if(site==='note'){var app=document.getElementById('app');if(app)new MutationObserver(enhance).observe(app,{childList:true,subtree:true})}});
+ window.addEventListener('lernicks-design-change',enhance);
+})();
+
+</script>
+<!-- FOLIO END -->
+</head>
+<body>
+
+<div id="app"></div>
+<script>
+(function(){
+  const app = document.getElementById('app');
+  const API = '';
+  var PW_STORAGE_KEY = 'tg_note_pw_'; // 同源部署;如果前后端分开部署,改成完整的后端地址,例如 'https://api.yourdomain.com'
+  const THEME_STORAGE_KEY = 'tg_note_theme_v1';
+
+  window.toggleNoteTheme = function(){
+    const current = document.documentElement.getAttribute('data-note-theme') || 'classic';
+    const next = current === 'tech' ? 'classic' : 'tech';
+    document.documentElement.setAttribute('data-note-theme', next);
+    document.getElementById('themeColor').content = next === 'tech' ? '#050b14' : '#12203a';
+    try{ localStorage.setItem(THEME_STORAGE_KEY, next); }catch(_){}
+  };
+
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function slugify(raw){
+    return (raw||'').trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-_\u4e00-\u9fa5]/g,'').slice(0,50);
+  }
+  function timeAgo(ts){
+    const diff = Math.max(0, Date.now()-ts);
+    const m = Math.floor(diff/60000);
+    if(m<1) return '刚刚';
+    if(m<60) return m+' 分钟前';
+    const h = Math.floor(m/60);
+    if(h<24) return h+' 小时前';
+    return Math.floor(h/24)+' 天前';
+  }
+  async function api(path, opts){
+    const res = await fetch(API + path, {
+      headers: {'Content-Type':'application/json'},
+      ...opts,
+    });
+    let data = null;
+    try{ data = await res.json(); }catch(e){}
+    return { ok: res.ok, status: res.status, data };
+  }
+  function nav(hash){ location.hash = hash; }
+
+  function topnavHtml(active){
+    return `
+      <div class="topnav">
+        <a href="#/" class="brand">✎ <b>便签电报</b> / notes</a>
+        <nav>
+          <a href="https://lernicks.cn">主站</a>
+          <a href="#/" style="${active==='home'?'color:#eee6d3':''}">首页</a>
+          <a href="#/feedback" style="${active==='fb'?'color:#eee6d3':''}">问题反馈</a>
+          <button class="theme-toggle" onclick="toggleNoteTheme()" title="切换网站主题" aria-label="切换网站主题"><span class="theme-to-tech">⌁ 科技</span><span class="theme-to-classic">✎ 经典</span></button>
+        </nav>
+      </div>
+    `;
+  }
+
+  // ---------------- HOME ----------------
+  function renderHome(){
+    app.innerHTML = `
+      ${topnavHtml('home')}
+      <div class="home-wrap">
+        <h1 class="telegram-title">写点什么,发给需要的人</h1>
+        <p class="telegram-sub">起一个只有你们知道的名字,内容即刻保存。可选择加一道密码,作为访问门槛。</p>
+        <div class="telegram-card">
+          <div class="perforation"></div>
+          <label>笔记代号 · Note ID</label>
+          <div style="display:flex;gap:8px;">
+            <input class="slug-input" id="slugInput" placeholder="例如 mynote-2026" autocomplete="off" style="flex:1;" />
+            <button style="background:var(--teal);color:#fff;padding:6px 14px;border-radius:2px;font-size:14px;cursor:pointer;border:none;font-family:var(--font-body);display:flex;align-items:center;gap:6px;white-space:nowrap;" id="randomBtn">🎲 随机</button>
+          </div>
+          <button class="go-btn" id="goBtn">打开 / 创建</button>
+        </div>
+        <p class="home-hint">提示:密码仅作为访问门槛,内容并未端到端加密,请勿存放高度敏感信息。</p>
+      </div>
+    `;
+    const input = document.getElementById('slugInput');
+    const go = () => {
+      const s = slugify(input.value);
+      if(!s){ input.focus(); return; }
+      nav('#/n/'+encodeURIComponent(s));
+    };
+    document.getElementById('randomBtn').onclick = ()=>{
+      const words = ['memo','idea','note','diary','draft','page','jot','log','vibe','word','ink','stamp','seal','clip','pins','tag','dash','flow','echo','spark'];
+      const w = words[Math.floor(Math.random()*words.length)];
+      const n = Math.random().toString(36).substring(2,5);
+      input.value = w+'-'+n;
+      input.focus();
+    };
+    document.getElementById('goBtn').onclick = go;
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
+    input.focus();
+  }
+
+  // ---------------- NOTE PAGE ----------------
+  async function renderNote(slug){
+    app.innerHTML = `${topnavHtml('')}<div id="noteRoot"></div>`;
+    const root = document.getElementById('noteRoot');
+    root.innerHTML = `<div class="gate-wrap"><p style="color:#7c8aa3;">加载中…</p></div>`;
+
+    const meta = await api('/api/notes/'+encodeURIComponent(slug)+'/meta');
+    if(!meta.ok){
+      root.innerHTML = `<div class="gate-wrap"><p style="color:#7c8aa3;">加载失败,请检查后端服务是否运行</p></div>`;
+      return;
+    }
+    if(meta.data.exists && meta.data.hasPassword){
+      renderGate(root, slug);
+    } else {
+      const r = await api('/api/notes/'+encodeURIComponent(slug));
+      const content = (r.ok && r.data.content) ? r.data.content : '';
+      renderEditor(root, slug, { content, hasPassword:false, token:null });
+    }
+  }
+
+  var PW_STORAGE_KEY = 'tg_note_pw_';
+
+  // 尝试自动解锁（localStorage 存有密码）
+  async function tryAutoUnlock(root, slug){
+    var saved = localStorage.getItem(PW_STORAGE_KEY + slug);
+    if(!saved) return false;
+    var r = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', {
+      method:'POST', body: JSON.stringify({ password: saved })
+    });
+    if(r.ok && r.data.ok){
+      renderEditor(root, slug, { content: r.data.content, hasPassword:true, token: r.data.token });
+      return true;
+    }
+    return false;
+  }
+
+  function renderGate(root, slug){
+    // 先尝试自动解锁
+    tryAutoUnlock(root, slug).then(function(ok){
+      if(ok) return;
+      // 自动解锁失败，显示密码输入框
+      root.innerHTML = `
+        <div class="gate-wrap">
+          <div class="gate-card">
+            <div class="wax-seal">🔒</div>
+            <h3>${escapeHtml(slug)}</h3>
+            <p>这份笔记设有密码,请输入以继续</p>
+            <input type="password" id="pwInput" placeholder="密码" />
+            <p class="gate-error" id="pwErr">密码不正确,请再试一次</p>
+            <button class="go-btn" id="pwGo">解锁</button>
+          </div>
+        </div>
+      `;
+      const input = document.getElementById('pwInput');
+      const err = document.getElementById('pwErr');
+      const submit = async () => {
+        const r = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', {
+          method:'POST', body: JSON.stringify({ password: input.value })
+        });
+        if(r.ok && r.data.ok){
+          localStorage.setItem(PW_STORAGE_KEY + slug, input.value);
+          renderEditor(root, slug, { content: r.data.content, hasPassword:true, token: r.data.token });
+        } else {
+          err.style.display='block'; input.value=''; input.focus();
+        }
+      };
+      document.getElementById('pwGo').onclick = submit;
+      input.addEventListener('keydown', e=>{ if(e.key==='Enter') submit(); });
+      input.focus();
+    });
+  }
+
+  function renderEditor(root, slug, state){
+    root.innerHTML = `
+      <div class="note-wrap">
+        <div class="note-bar">
+          <div class="postmark"><span class="dot"></span>${escapeHtml(slug)}</div>
+          <div class="note-actions">
+            <button class="icon-btn" id="copyLink">🔗 复制链接</button>
+            <button class="icon-btn seal ${state.hasPassword?'':'off'}" id="lockBtn">${state.hasPassword?'🔒 已加密':'🔓 无密码'}</button>
+            <button class="icon-btn seal" id="destroyBtn" style="background:var(--seal);">🗑️ 销毁</button>
+          </div>
+        </div>
+        <div class="paper-page">
+          <textarea id="editorArea" placeholder="开始写下你想说的话…">${escapeHtml(state.content||'')}</textarea>
+          <div class="save-status" id="saveStatus">已保存</div>
+        </div>
+        <div class="settings-panel" id="settingsPanel">
+          <div class="row" id="pwRow" style="display:${state.hasPassword? 'none':'flex'};">
+            <input type="text" id="newPw" placeholder="设置访问密码" />
+            <button class="apply" id="applyPw">保存设置</button>
+          </div>
+          <div class="row" id="pwRowChange" style="display:${state.hasPassword?'flex':'none'};">
+            <input type="text" id="newPw2" placeholder="输入新密码以更改,留空则移除密码" />
+            <button class="apply" id="applyPw2">保存设置</button>
+          </div>
+          <p class="settings-note">密码以哈希形式保存在服务器上,仅作为打开这份笔记的门槛;请勿用于存放高度敏感信息。</p>
+        </div>
+      </div>
+    `;
+
+    const area = document.getElementById('editorArea');
+    const status = document.getElementById('saveStatus');
+    let saveTimer = null;
+    let token = state.token;
+
+    async function persist(patch){
+      status.textContent = '保存中…';
+      const body = { content: area.value };
+      if(typeof patch.setPassword !== 'undefined') body.setPassword = patch.setPassword;
+      if(token) body.token = token;
+      const r = await api('/api/notes/'+encodeURIComponent(slug), { method:'PUT', body: JSON.stringify(body) });
+      if(r.ok){
+        status.textContent = '已保存 · ' + new Date().toLocaleTimeString();
+        return r.data;
+      } else {
+        status.textContent = r.status===401 ? '未授权,请重新解锁后再试' : '保存失败,请重试';
+        return null;
+      }
+    }
+
+    area.addEventListener('input', ()=>{
+      status.textContent = '输入中…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(()=> persist({}), 700);
+    });
+
+    document.getElementById('destroyBtn').onclick = async ()=>{
+      if(!confirm('确定要销毁笔记「'+slug+'」吗?此操作不可撤销。')) return;
+      const body = {};
+      if(token) body.token = token;
+      const r = await api('/api/notes/'+encodeURIComponent(slug), { method:'DELETE', body: JSON.stringify(body) });
+      if(r.ok){
+        nav('#/');
+      } else if(r.status===401){
+        alert('无权限删除,请重新解锁笔记后再试');
+      } else {
+        alert('删除失败');
+      }
+    };
+
+    document.getElementById('copyLink').onclick = async (e)=>{
+      const url = location.origin + '/#/n/' + encodeURIComponent(slug);
+      try{
+        await navigator.clipboard.writeText(url);
+        e.target.textContent = '✓ 已复制';
+        setTimeout(()=> e.target.textContent = '🔗 复制链接', 1500);
+      }catch(err){ prompt('复制此链接:', url); }
+    };
+
+    const panel = document.getElementById('settingsPanel');
+    document.getElementById('lockBtn').onclick = ()=> panel.classList.toggle('open');
+
+    document.getElementById('applyPw').onclick = async ()=>{
+      const val = document.getElementById('newPw').value;
+      if(!val) return;
+      const data = await persist({ setPassword: val });
+      if(data){
+        // 保存新密码到本地
+        localStorage.setItem(PW_STORAGE_KEY + slug, val);
+        // 设置密码后需要重新获取解锁令牌:直接刷新为已解锁状态
+        state.hasPassword = true; state.content = area.value;
+        renderEditor(root, slug, state); // 注意:此处 token 会失效,下方逻辑做了处理
+        // 由于设置密码会清空旧 token,这里立即用刚设的密码换取新 token,保证当前会话可继续编辑
+        const r2 = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', { method:'POST', body: JSON.stringify({ password: val }) });
+        if(r2.ok && r2.data.ok){
+          state.token = r2.data.token;
+          renderEditor(root, slug, state);
+        }
+      }
+    };
+    document.getElementById('applyPw2').onclick = async ()=>{
+      const val = document.getElementById('newPw2').value;
+      const data = await persist({ setPassword: val || '' });
+      if(data){
+        if(val){
+          const r2 = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', { method:'POST', body: JSON.stringify({ password: val }) });
+          state.hasPassword = true;
+          state.token = r2.ok ? r2.data.token : null;
+          // 保存新密码
+          localStorage.setItem(PW_STORAGE_KEY + slug, val);
+        } else {
+          state.hasPassword = false;
+          state.token = null;
+          // 移除了密码，清除本地记录
+          localStorage.removeItem(PW_STORAGE_KEY + slug);
+        }
+        state.content = area.value;
+        renderEditor(root, slug, state);
+      }
+    };
+  }
+
+  // ---------------- FEEDBACK ----------------
+  async function renderFeedback(){
+    app.innerHTML = `
+      ${topnavHtml('fb')}
+      <div class="fb-wrap">
+        <div class="fb-card">
+          <div class="perforation"></div>
+          <h2>问题反馈</h2>
+          <p class="desc">遇到问题、有改进想法,或者只是想打个招呼?写在下面。反馈公开可见,请不要包含隐私信息。</p>
+          <label>你的称呼(可选)</label>
+          <input type="text" id="fbName" placeholder="匿名" />
+          <label>反馈内容</label>
+          <textarea id="fbMsg" placeholder="说说发生了什么…"></textarea>
+          <button class="go-btn fb-submit" id="fbSubmit">提交反馈</button>
+          <p class="fb-msg" id="fbMsgOk">已收到,感谢反馈!</p>
+        </div>
+        <div class="fb-list-wrap">
+          <div class="fb-list-title">最近反馈</div>
+          <div id="fbList"><p class="fb-empty">加载中…</p></div>
+        </div>
+      </div>
+    `;
+    document.getElementById('fbSubmit').onclick = submitFeedback;
+    loadFeedback();
+  }
+
+  async function submitFeedback(){
+    const name = document.getElementById('fbName').value.trim().slice(0,30);
+    const msg = document.getElementById('fbMsg').value.trim();
+    if(!msg) return;
+    const r = await api('/api/feedback', { method:'POST', body: JSON.stringify({ name, message: msg }) });
+    if(r.ok){
+      document.getElementById('fbMsg').value='';
+      document.getElementById('fbName').value='';
+      const ok = document.getElementById('fbMsgOk');
+      ok.style.display='block';
+      setTimeout(()=> ok.style.display='none', 2500);
+      loadFeedback();
+    } else {
+      alert('提交失败,请稍后再试');
+    }
+  }
+
+  async function loadFeedback(){
+    const list = document.getElementById('fbList');
+    const r = await api('/api/feedback?limit=25');
+    if(!r.ok || !r.data.items || r.data.items.length===0){
+      list.innerHTML = '<p class="fb-empty">还没有反馈,来写第一条吧</p>';
+      return;
+    }
+    list.innerHTML = r.data.items.map(it=>`
+      <div class="fb-item">
+        <div class="meta"><span>${escapeHtml(it.name)}</span><span>${timeAgo(it.createdAt)}</span></div>
+        <div class="body">${escapeHtml(it.message)}</div>
+      </div>
+    `).join('');
+  }
+
+  // ---------------- ROUTER ----------------
+  function route(){
+    const hash = location.hash || '#/';
+    if(hash === '#/' || hash === ''){
+      renderHome();
+    } else if(hash.startsWith('#/n/')){
+      renderNote(decodeURIComponent(hash.slice(4)));
+    } else if(hash === '#/feedback'){
+      renderFeedback();
+    } else {
+      renderHome();
+    }
+  }
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>

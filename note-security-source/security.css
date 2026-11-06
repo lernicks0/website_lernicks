@@ -1,0 +1,18 @@
+.security-check{display:flex;align-items:flex-start;gap:10px;margin:16px 0 8px;line-height:1.6;cursor:pointer}
+.security-check input{flex:none;width:17px;height:17px;margin:3px 0;accent-color:var(--teal)}
+.security-fields{display:grid;gap:10px;max-width:580px;margin-top:22px}
+.security-fields label{font-size:13px;line-height:1.7}
+.security-fields :is(input,select){box-sizing:border-box;min-width:0;width:100%;padding:11px 12px;border:1px solid #aaa;border-radius:5px;font:inherit;background:var(--paper);color:var(--text-dark)}
+.security-fields button{justify-self:start;margin:10px 0}
+.security-summary{width:min(880px,calc(100% - 36px));font-size:12px;line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
+.security-error{font-size:13px;line-height:1.8;color:#cf5b4f;white-space:pre-wrap;overflow-wrap:anywhere}
+.gate-card .burn-warning,.settings-panel .burn-warning{font-size:13px;line-height:1.9;color:var(--seal)}
+.gate-card .security-question{font-weight:600;overflow-wrap:anywhere}
+.gate-card{overflow-wrap:anywhere}
+.gate-card label{display:block;margin-bottom:10px;font-size:13px}
+.gate-card input{width:100%;min-width:0;padding:12px;border:1px solid #aaa;border-radius:5px;font:inherit}
+button:disabled{opacity:.55;cursor:wait}
+.settings-panel .security-fields input{min-width:0}
+.settings-panel{max-width:calc(100% - 36px)}
+html.astra .security-fields :is(input,select){background:#fffefa;color:#30332c;border-color:#d8d5cd}
+@media(max-width:600px){.note-actions{flex-wrap:wrap}.paper-page textarea{padding-bottom:64px}.save-status{max-width:calc(100% - 28px);right:14px;text-align:right}.settings-panel{padding:18px}.security-fields{max-width:100%}.security-check{letter-spacing:0}}

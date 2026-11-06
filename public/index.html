@@ -911,367 +911,254 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
 
 </script>
 <!-- FOLIO END -->
+<meta name="referrer" content="no-referrer">
+<style id="note-security-style">
+.security-check{display:flex;align-items:flex-start;gap:10px;margin:16px 0 8px;line-height:1.6;cursor:pointer}
+.security-check input{flex:none;width:17px;height:17px;margin:3px 0;accent-color:var(--teal)}
+.security-fields{display:grid;gap:10px;max-width:580px;margin-top:22px}
+.security-fields label{font-size:13px;line-height:1.7}
+.security-fields :is(input,select){box-sizing:border-box;min-width:0;width:100%;padding:11px 12px;border:1px solid #aaa;border-radius:5px;font:inherit;background:var(--paper);color:var(--text-dark)}
+.security-fields button{justify-self:start;margin:10px 0}
+.security-summary{width:min(880px,calc(100% - 36px));font-size:12px;line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
+.security-error{font-size:13px;line-height:1.8;color:#cf5b4f;white-space:pre-wrap;overflow-wrap:anywhere}
+.gate-card .burn-warning,.settings-panel .burn-warning{font-size:13px;line-height:1.9;color:var(--seal)}
+.gate-card .security-question{font-weight:600;overflow-wrap:anywhere}
+.gate-card{overflow-wrap:anywhere}
+.gate-card label{display:block;margin-bottom:10px;font-size:13px}
+.gate-card input{width:100%;min-width:0;padding:12px;border:1px solid #aaa;border-radius:5px;font:inherit}
+button:disabled{opacity:.55;cursor:wait}
+.settings-panel .security-fields input{min-width:0}
+.settings-panel{max-width:calc(100% - 36px)}
+html.astra .security-fields :is(input,select){background:#fffefa;color:#30332c;border-color:#d8d5cd}
+@media(max-width:600px){.note-actions{flex-wrap:wrap}.paper-page textarea{padding-bottom:64px}.save-status{max-width:calc(100% - 28px);right:14px;text-align:right}.settings-panel{padding:18px}.security-fields{max-width:100%}.security-check{letter-spacing:0}}
+</style>
 </head>
 <body>
 
 <div id="app"></div>
-<script>
+<script id="note-crypto">
+(function(scope){
+  'use strict';
+  const enc = new TextEncoder(), dec = new TextDecoder('utf-8', { fatal: true });
+  function encode(bytes) {
+    let s = ''; for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decode(s) {
+    if (typeof s !== 'string' || !/^[A-Za-z0-9_-]+$/.test(s)) throw Error('INVALID_KEY');
+    return Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  }
+  const random = size => encode(crypto.getRandomValues(new Uint8Array(size)));
+  async function derive(secret, password, salt) {
+    if (!scope.isSecureContext && typeof window !== 'undefined') throw Error('HTTPS_REQUIRED');
+    if (!crypto.subtle) throw Error('HTTPS_REQUIRED');
+    const master = decode(secret), saltBytes = decode(salt);
+    if (master.length !== 32 || saltBytes.length !== 16) throw Error('INVALID_KEY');
+    const input = new Uint8Array(32 + enc.encode(password).length);
+    input.set(master); input.set(enc.encode(password), 32);
+    const material = await crypto.subtle.importKey('raw', input, 'PBKDF2', false, ['deriveBits']);
+    const bits = new Uint8Array(await crypto.subtle.deriveBits({ name:'PBKDF2', salt:saltBytes, iterations:600000, hash:'SHA-256' }, material, 512));
+    const key = await crypto.subtle.importKey('raw', bits.slice(0,32), 'AES-GCM', false, ['encrypt','decrypt']);
+    const accessKey = encode(bits.slice(32)); bits.fill(0); input.fill(0); master.fill(0);
+    return { key, accessKey, salt };
+  }
+  async function encrypt(content, keys, slug) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const bytes = await crypto.subtle.encrypt({ name:'AES-GCM', iv, additionalData:enc.encode('note-v1:' + slug), tagLength:128 }, keys.key, enc.encode(content));
+    return { v:1, kdf:'PBKDF2-SHA256', iterations:600000, salt:keys.salt, iv:encode(iv), ciphertext:encode(new Uint8Array(bytes)) };
+  }
+  async function decrypt(envelope, keys, slug) {
+    if (envelope.v !== 1 || envelope.kdf !== 'PBKDF2-SHA256' || envelope.iterations !== 600000 || envelope.salt !== keys.salt) throw Error('INVALID_ENVELOPE');
+    return dec.decode(await crypto.subtle.decrypt({ name:'AES-GCM', iv:decode(envelope.iv), additionalData:enc.encode('note-v1:' + slug), tagLength:128 }, keys.key, decode(envelope.ciphertext)));
+  }
+  scope.NoteCrypto = { random, derive, encrypt, decrypt };
+  if (typeof module !== 'undefined') module.exports = scope.NoteCrypto;
+})(globalThis);
+</script>
+<script id="note-security-client">
 (function(){
+  'use strict';
   const app = document.getElementById('app');
-  const API = '';
-  var PW_STORAGE_KEY = 'tg_note_pw_'; // 同源部署;如果前后端分开部署,改成完整的后端地址,例如 'https://api.yourdomain.com'
-  const THEME_STORAGE_KEY = 'tg_note_theme_v1';
-
+  // Retire the old client's persistent plaintext password cache, preserving theme preferences.
+  try { for(const key of Object.keys(localStorage)) if(key.startsWith('tg_note_pw_')) localStorage.removeItem(key); } catch(_) {}
+  let dispose = () => {}, generation = 0;
+  const escapeHtml = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const endpoint = slug => '/api/notes/' + encodeURIComponent(slug);
+  const messages = { CONFLICT:'便签已被其他页面修改，请重新打开后再试。', UNAUTHORIZED:'编辑权限已失效，请重新打开。', STORAGE_ERROR:'保存失败，请稍后重试。', PASSWORD_TOO_LONG:'普通密码／答案最多 72 个 UTF-8 字节，请缩短或启用端到端加密。', CONTENT_TOO_LARGE:'正文最多 500000 字。', TOO_MANY_ATTEMPTS:'尝试过于频繁，请一分钟后再试。', WRONG_PASSWORD:'密码、答案或链接密钥不正确。', HTTPS_REQUIRED:'端到端加密需要 HTTPS 和支持 Web Crypto 的浏览器。' };
+  function failure(r) { return new Error(messages[r.data?.error] || (r.status === 410 ? '便签不存在或已销毁。' : '操作失败，请重试。')); }
+  async function api(url, method = 'GET', body) {
+    const r = await fetch(url, { method, cache:'no-store', credentials:'same-origin', referrerPolicy:'no-referrer', headers:{'Content-Type':'application/json'}, body:body === undefined ? undefined : JSON.stringify(body) });
+    const data = await r.json(); return { ok:r.ok, status:r.status, data };
+  }
   window.toggleNoteTheme = function(){
-    const current = document.documentElement.getAttribute('data-note-theme') || 'classic';
-    const next = current === 'tech' ? 'classic' : 'tech';
+    const next = document.documentElement.getAttribute('data-note-theme') === 'tech' ? 'classic' : 'tech';
     document.documentElement.setAttribute('data-note-theme', next);
     document.getElementById('themeColor').content = next === 'tech' ? '#050b14' : '#12203a';
-    try{ localStorage.setItem(THEME_STORAGE_KEY, next); }catch(_){}
+    try { localStorage.setItem('tg_note_theme_v1', next); } catch (_) {}
   };
-
-  function escapeHtml(s){
-    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-  function slugify(raw){
-    return (raw||'').trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-_\u4e00-\u9fa5]/g,'').slice(0,50);
-  }
-  function timeAgo(ts){
-    const diff = Math.max(0, Date.now()-ts);
-    const m = Math.floor(diff/60000);
-    if(m<1) return '刚刚';
-    if(m<60) return m+' 分钟前';
-    const h = Math.floor(m/60);
-    if(h<24) return h+' 小时前';
-    return Math.floor(h/24)+' 天前';
-  }
-  async function api(path, opts){
-    const res = await fetch(API + path, {
-      headers: {'Content-Type':'application/json'},
-      ...opts,
-    });
-    let data = null;
-    try{ data = await res.json(); }catch(e){}
-    return { ok: res.ok, status: res.status, data };
-  }
-  function nav(hash){ location.hash = hash; }
-
-  function topnavHtml(active){
-    return `
-      <div class="topnav">
-        <a href="#/" class="brand">✎ <b>便签电报</b> / notes</a>
-        <nav>
-          <a href="https://lernicks.cn">主站</a>
-          <a href="#/" style="${active==='home'?'color:#eee6d3':''}">首页</a>
-          <a href="#/feedback" style="${active==='fb'?'color:#eee6d3':''}">问题反馈</a>
-          <button class="theme-toggle" onclick="toggleNoteTheme()" title="切换网站主题" aria-label="切换网站主题"><span class="theme-to-tech">⌁ 科技</span><span class="theme-to-classic">✎ 经典</span></button>
-        </nav>
-      </div>
-    `;
-  }
-
-  // ---------------- HOME ----------------
-  function renderHome(){
-    app.innerHTML = `
-      ${topnavHtml('home')}
-      <div class="home-wrap">
-        <h1 class="telegram-title">写点什么,发给需要的人</h1>
-        <p class="telegram-sub">起一个只有你们知道的名字,内容即刻保存。可选择加一道密码,作为访问门槛。</p>
-        <div class="telegram-card">
-          <div class="perforation"></div>
-          <label>笔记代号 · Note ID</label>
-          <div style="display:flex;gap:8px;">
-            <input class="slug-input" id="slugInput" placeholder="例如 mynote-2026" autocomplete="off" style="flex:1;" />
-            <button style="background:var(--teal);color:#fff;padding:6px 14px;border-radius:2px;font-size:14px;cursor:pointer;border:none;font-family:var(--font-body);display:flex;align-items:center;gap:6px;white-space:nowrap;" id="randomBtn">🎲 随机</button>
-          </div>
-          <button class="go-btn" id="goBtn">打开 / 创建</button>
-        </div>
-        <p class="home-hint">提示:密码仅作为访问门槛,内容并未端到端加密,请勿存放高度敏感信息。</p>
-      </div>
-    `;
+  function nav(){ return `<div class="topnav"><a href="#/" class="brand">✎ <b>便签电报</b> / notes</a><nav><a href="https://lernicks.cn">主站</a><a href="#/">首页</a><a href="#/feedback">问题反馈</a><button class="theme-toggle" onclick="toggleNoteTheme()" aria-label="切换网站主题"><span class="theme-to-tech">⌁ 科技</span><span class="theme-to-classic">✎ 经典</span></button></nav></div>`; }
+  function scrub(){ history.replaceState(null, '', location.pathname + location.search + '#/'); }
+  function forget(slug) { try { localStorage.removeItem('tg_note_pw_' + slug); sessionStorage.removeItem('tg_note_pw_' + slug); } catch (_) {} }
+  function notice(root, message){ root.innerHTML = `<div class="gate-wrap"><div class="gate-card"><h3>便签已销毁</h3><p>${escapeHtml(message)}</p><a href="#/">返回首页</a></div></div>`; }
+  function home(){
+    app.innerHTML = nav() + `<div class="home-wrap"><h1 class="telegram-title">写点什么，发给需要的人</h1><p class="telegram-sub">随写随存，用链接分享。可以设置问题、端到端加密，或留一封阅后即焚的信。</p><div class="telegram-card"><div class="perforation"></div><label for="slugInput">笔记代号 · Note ID</label><div style="display:flex;gap:8px;min-width:0"><input class="slug-input" id="slugInput" placeholder="例如 mynote-2026" autocomplete="off" style="min-width:0;flex:1"><button id="randomBtn">🎲 随机</button></div><button class="go-btn" id="goBtn">打开 / 创建</button></div><p class="home-hint">加密便签请保存完整分享链接。密码、答案和解密密钥不会在此浏览器中持久保存。</p></div>`;
     const input = document.getElementById('slugInput');
-    const go = () => {
-      const s = slugify(input.value);
-      if(!s){ input.focus(); return; }
-      nav('#/n/'+encodeURIComponent(s));
-    };
-    document.getElementById('randomBtn').onclick = ()=>{
-      const words = ['memo','idea','note','diary','draft','page','jot','log','vibe','word','ink','stamp','seal','clip','pins','tag','dash','flow','echo','spark'];
-      const w = words[Math.floor(Math.random()*words.length)];
-      const n = Math.random().toString(36).substring(2,5);
-      input.value = w+'-'+n;
-      input.focus();
-    };
+    const go = () => { const s = input.value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-_\u4e00-\u9fa5]/g,'').slice(0,50); if(s) location.hash = '#/n/' + encodeURIComponent(s); };
     document.getElementById('goBtn').onclick = go;
-    input.addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
-    input.focus();
+    document.getElementById('randomBtn').onclick = () => { input.value = 'note-' + NoteCrypto.random(9); };
+    input.onkeydown = e => { if(e.key === 'Enter') go(); }; input.focus();
   }
-
-  // ---------------- NOTE PAGE ----------------
-  async function renderNote(slug){
-    app.innerHTML = `${topnavHtml('')}<div id="noteRoot"></div>`;
+  async function open(slug, secret, current){
+    forget(slug);
+    app.innerHTML = nav() + '<div id="noteRoot" style="width:100%;display:flex;flex:1;flex-direction:column;align-items:center"><p role="status">加载中…</p></div>';
     const root = document.getElementById('noteRoot');
-    root.innerHTML = `<div class="gate-wrap"><p style="color:#7c8aa3;">加载中…</p></div>`;
-
-    const meta = await api('/api/notes/'+encodeURIComponent(slug)+'/meta');
-    if(!meta.ok){
-      root.innerHTML = `<div class="gate-wrap"><p style="color:#7c8aa3;">加载失败,请检查后端服务是否运行</p></div>`;
-      return;
-    }
-    if(meta.data.exists && meta.data.hasPassword){
-      renderGate(root, slug);
-    } else {
-      const r = await api('/api/notes/'+encodeURIComponent(slug));
-      const content = (r.ok && r.data.content) ? r.data.content : '';
-      renderEditor(root, slug, { content, hasPassword:false, token:null });
-    }
+    try {
+      const r = await api(endpoint(slug) + '/meta'); if(current !== generation) return; if(!r.ok) throw failure(r);
+      const m = r.data;
+      if (!m.exists) return editor(root, slug, { ...m, content:'', secret:null, password:'', token:null }, current);
+      if (m.encrypted || m.hasPassword || m.burnAfterRead) return gate(root, slug, m, secret, current);
+      const p = await api(endpoint(slug)); if(current !== generation) return; if(!p.ok) throw failure(p);
+      if(p.data.hasPassword || p.data.burnAfterRead || p.data.encrypted) throw Error('便签保护设置已变化，请重新打开。');
+      editor(root, slug, { ...p.data, secret:null, password:'', token:null }, current);
+    } catch(e) { if(current === generation) root.innerHTML = '<p role="alert">' + escapeHtml(e.message) + '</p>'; }
   }
-
-  var PW_STORAGE_KEY = 'tg_note_pw_';
-
-  // 尝试自动解锁（localStorage 存有密码）
-  async function tryAutoUnlock(root, slug){
-    var saved = localStorage.getItem(PW_STORAGE_KEY + slug);
-    if(!saved) return false;
-    var r = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', {
-      method:'POST', body: JSON.stringify({ password: saved })
-    });
-    if(r.ok && r.data.ok){
-      renderEditor(root, slug, { content: r.data.content, hasPassword:true, token: r.data.token });
+  function gate(root, slug, m, secret, current){
+    root.innerHTML = `<div class="gate-wrap"><div class="gate-card"><div class="wax-seal">🔒</div><h3>${escapeHtml(slug)}</h3><p>${m.encrypted ? '端到端加密便签' : '受保护的便签'}</p>${m.question ? `<p class="security-question">${escapeHtml(m.question)}</p>` : ''}${m.hasPassword ? `<label for="pwInput">${m.question ? '答案（严格区分大小写和空格）' : '访问密码'}</label><input type="password" id="pwInput" autocomplete="off" placeholder="${m.question ? '输入答案' : '输入密码'}" maxlength="200">` : ''}${m.encrypted && !secret ? '<label for="linkKey">请粘贴完整加密分享链接或链接密钥</label><input id="linkKey" type="password" autocomplete="off">' : ''}<p class="burn-warning">${m.burnAfterRead ? '阅后即焚：点击阅读后立即从服务器删除。输错密码、答案或链接密钥同样会销毁。关闭或刷新后无法恢复。' : '密码、答案和密钥仅在本页面内存中使用。'}</p><p id="pwErr" class="security-error" role="alert"></p><button class="go-btn" id="pwGo">${m.burnAfterRead ? '阅读并销毁' : '解锁阅读'}</button></div></div>`;
+    const button = document.getElementById('pwGo'), input = document.getElementById('pwInput'), error = document.getElementById('pwErr');
+    button.onclick = async () => {
+      button.disabled = true; error.textContent = '';
+      try {
+        let key = secret, keys = null;
+        const password = input?.value || '';
+        if(m.encrypted){
+          key = key || document.getElementById('linkKey')?.value.trim();
+          if(key?.includes('#')) key = new URLSearchParams(key.split('?').slice(1).join('?')).get('k');
+          // Missing/malformed key is a form error, not a password attempt sent to the server.
+          if(!key || !/^[A-Za-z0-9_-]{43}$/.test(key)) throw Error('请使用包含密钥的完整加密分享链接。');
+          keys = await NoteCrypto.derive(key, password, m.crypto.salt);
+        }
+        const b = { confirmRead:true, revision:m.revision };
+        if(m.encrypted) b.accessKey = keys.accessKey; else b.password = password;
+        const r = await api(endpoint(slug) + '/read', 'POST', b);
+        if(current !== generation) return;
+        if(r.status === 410){ forget(slug); scrub(); notice(root, r.data.destroyed ? '输入有误，这份阅后即焚便签已销毁，未保留阅读记录。' : '这份便签已不存在。'); return; }
+        if(!r.ok) throw failure(r);
+        if(r.data.destroyed){ forget(slug); scrub(); }
+        let content;
+        try { content = m.encrypted ? await NoteCrypto.decrypt(r.data.envelope, keys, slug) : r.data.content; }
+        catch (_) { throw Error(r.data.destroyed ? '服务器副本已销毁，但密文校验失败，无法显示正文。' : '密文校验失败，正文未显示。'); }
+        if(current !== generation) return;
+        editor(root, slug, { ...r.data, content, secret:key, keys, password, token:r.data.token || null }, current);
+      } catch(e) { if(current === generation && root.isConnected) { error.textContent = e.message; button.disabled = false; } }
+    };
+    if(input) { input.onkeydown = e => { if(e.key === 'Enter' && !button.disabled) button.click(); }; input.focus(); }
+  }
+  function editor(root, slug, state, current){
+    const burned = !!state.destroyed;
+    root.innerHTML = `<div class="note-wrap"><div class="note-bar"><div class="postmark"><span class="dot"></span>${burned ? '一次性阅读' : escapeHtml(slug)}</div><div class="note-actions">${burned ? '' : '<button class="icon-btn" id="copyLink">🔗 复制链接</button><button class="icon-btn" id="lockBtn">保护设置</button><button class="icon-btn seal" id="destroyBtn">销毁</button>'}</div></div><div class="paper-page"><textarea id="editorArea" maxlength="500000" aria-label="便签正文" placeholder="开始写下你想说的话…" ${burned ? 'readonly' : ''}>${escapeHtml(state.content)}</textarea><div class="save-status" id="saveStatus" role="status">${burned ? '服务器副本已销毁 · 仅此页可读' : state.exists ? '已保存' : '尚未保存 · 请先选择保护方式'}</div></div>${burned ? '<p class="security-summary">便签和访问凭据已删除，站内不保留阅读记录，当前地址记录已替换。关闭或刷新后无法再次读取。</p>' : `<p id="securitySummary" class="security-summary"></p><div class="settings-panel ${state.exists ? '' : 'open'}" id="settingsPanel"><label class="security-check"><input id="burnAfterRead" type="checkbox" ${state.burnAfterRead ? 'checked' : ''}><span>阅后即焚：下一个人阅读即销毁</span></label><p class="settings-note burn-warning">读者提交错误密码或答案也会销毁。当前编辑页不触发，阅读后只保留读者已经打开的页面。</p><label class="security-check"><input id="e2ee" type="checkbox" ${state.encrypted ? 'checked' : ''}><span>端到端加密</span></label><p class="settings-note">正文在浏览器内加密。请复制并保存完整分享链接；密钥、密码或答案丢失后无法恢复。自定义问题公开可见，请使用难猜的答案。</p><div class="security-fields"><label for="protectionMode">访问验证</label><select id="protectionMode"><option value="none">无需密码</option><option value="password">密码</option><option value="question">自定义问题</option></select><label for="customQuestion">自定义问题（选择问题验证时必填）</label><input id="customQuestion" type="text" maxlength="200" value="${escapeHtml(state.question)}" placeholder="例如：约定的那句话是什么？"><label for="newPw">密码 / 问题答案</label><input id="newPw" type="password" autocomplete="new-password" maxlength="200" placeholder="${state.hasPassword ? '留空保留现有密码或答案' : '设置密码或答案'}"><button class="apply" id="saveSettings">${state.exists ? '保存保护设置' : '保存并创建便签'}</button></div><p id="settingsError" class="security-error" role="alert"></p><p class="settings-note">阅后即焚只保留当前打开页面的正文；无法撤回对方的截图或复制内容，也无法代删浏览器及第三方代理日志。</p></div>`}</div>`;
+    const area = document.getElementById('editorArea'), status = document.getElementById('saveStatus');
+    let timer, watch, stopped = false, dirty = false, chain = Promise.resolve(), settingsBusy = false;
+    const stop = () => { stopped = true; clearTimeout(timer); clearInterval(watch); state.secret = null; state.keys = null; state.password = ''; state.content = ''; area.value = ''; };
+    dispose = stop;
+    // BFCache must not retain a consumed note or its keys when navigating away.
+    const hide = () => { stop(); }; window.addEventListener('pagehide', hide, {once:true});
+    const oldDispose = dispose; dispose = () => { window.removeEventListener('pagehide', hide); oldDispose(); };
+    if(burned) { state.content = ''; state.secret = null; state.keys = null; state.password = ''; return; }
+    const panel = document.getElementById('settingsPanel'), mode = document.getElementById('protectionMode');
+    mode.value = state.hasPassword ? state.question ? 'question' : 'password' : 'none';
+    const summary = () => { if(!state.exists) { document.getElementById('securitySummary').textContent = '尚未创建 · 选择保护方式后保存'; return; } document.getElementById('securitySummary').textContent = [state.burnAfterRead ? '阅后即焚已开启（输错即销毁）' : '普通便签', state.encrypted ? '端到端加密' : '服务器保存正文', state.hasPassword ? state.question ? '问题验证' : '密码验证' : '无需密码', state.encrypted ? '请保存完整链接；刷新后需重新用完整链接打开' : ''].filter(Boolean).join(' · '); };
+    summary();
+    watch = setInterval(async () => {
+      if(stopped || !state.exists || !state.burnAfterRead || settingsBusy || current !== generation) return;
+      try {
+        const r = await api(endpoint(slug) + '/meta');
+        if(current === generation && r.ok && !r.data.exists) { stop(); forget(slug); scrub(); notice(root, '这份阅后即焚便签已被读取或因输入有误而销毁。'); }
+      } catch(_) {}
+    }, 2500);
+    function markError(e){ status.textContent = e.message; document.getElementById('settingsError').textContent = e.message; }
+    async function save(config){
+      if(stopped || current !== generation) return false;
+      const text = area.value;
+      status.textContent = '保存中…';
+      const next = config || { encrypted:!!state.encrypted, burnAfterRead:!!state.burnAfterRead, hasPassword:!!state.hasPassword, question:state.question || '', password:state.password || '', secret:state.secret, keys:state.keys };
+      const b = { revision:state.revision, token:state.token, create:!state.exists, burnAfterRead:next.burnAfterRead, encrypted:next.encrypted, question:next.question };
+      if(next.encrypted){
+        if(!next.secret) next.secret = NoteCrypto.random(32);
+        if(!next.keys || config) next.keys = await NoteCrypto.derive(next.secret, next.password, NoteCrypto.random(16));
+        b.envelope = await NoteCrypto.encrypt(text, next.keys, slug); b.accessKey = next.keys.accessKey; b.hasPassword = next.hasPassword;
+      } else { b.content = text; if(config) b.setPassword = next.password; }
+      if(stopped || current !== generation) return false;
+      const r = await api(endpoint(slug), 'PUT', b);
+      if(!r.ok){
+        if(r.status === 410) { stop(); forget(slug); area.readOnly = true; scrub(); status.textContent = '便签已销毁，无法恢复或保存'; return false; }
+        if(r.status === 409 || r.status === 401) { stopped = true; clearTimeout(timer); }
+        throw failure(r);
+      }
+      if(current !== generation) return false;
+      Object.assign(state, next, r.data, { content:text });
+      if(!state.encrypted) { state.secret = null; state.keys = null; }
+      status.textContent = '已保存 · ' + new Date().toLocaleTimeString(); summary();
       return true;
     }
-    return false;
-  }
-
-  function renderGate(root, slug){
-    // 先尝试自动解锁
-    tryAutoUnlock(root, slug).then(function(ok){
-      if(ok) return;
-      // 自动解锁失败，显示密码输入框
-      root.innerHTML = `
-        <div class="gate-wrap">
-          <div class="gate-card">
-            <div class="wax-seal">🔒</div>
-            <h3>${escapeHtml(slug)}</h3>
-            <p>这份笔记设有密码,请输入以继续</p>
-            <input type="password" id="pwInput" placeholder="密码" />
-            <p class="gate-error" id="pwErr">密码不正确,请再试一次</p>
-            <button class="go-btn" id="pwGo">解锁</button>
-          </div>
-        </div>
-      `;
-      const input = document.getElementById('pwInput');
-      const err = document.getElementById('pwErr');
-      const submit = async () => {
-        const r = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', {
-          method:'POST', body: JSON.stringify({ password: input.value })
-        });
-        if(r.ok && r.data.ok){
-          localStorage.setItem(PW_STORAGE_KEY + slug, input.value);
-          renderEditor(root, slug, { content: r.data.content, hasPassword:true, token: r.data.token });
-        } else {
-          err.style.display='block'; input.value=''; input.focus();
-        }
-      };
-      document.getElementById('pwGo').onclick = submit;
-      input.addEventListener('keydown', e=>{ if(e.key==='Enter') submit(); });
-      input.focus();
-    });
-  }
-
-  function renderEditor(root, slug, state){
-    root.innerHTML = `
-      <div class="note-wrap">
-        <div class="note-bar">
-          <div class="postmark"><span class="dot"></span>${escapeHtml(slug)}</div>
-          <div class="note-actions">
-            <button class="icon-btn" id="copyLink">🔗 复制链接</button>
-            <button class="icon-btn seal ${state.hasPassword?'':'off'}" id="lockBtn">${state.hasPassword?'🔒 已加密':'🔓 无密码'}</button>
-            <button class="icon-btn seal" id="destroyBtn" style="background:var(--seal);">🗑️ 销毁</button>
-          </div>
-        </div>
-        <div class="paper-page">
-          <textarea id="editorArea" placeholder="开始写下你想说的话…">${escapeHtml(state.content||'')}</textarea>
-          <div class="save-status" id="saveStatus">已保存</div>
-        </div>
-        <div class="settings-panel" id="settingsPanel">
-          <div class="row" id="pwRow" style="display:${state.hasPassword? 'none':'flex'};">
-            <input type="text" id="newPw" placeholder="设置访问密码" />
-            <button class="apply" id="applyPw">保存设置</button>
-          </div>
-          <div class="row" id="pwRowChange" style="display:${state.hasPassword?'flex':'none'};">
-            <input type="text" id="newPw2" placeholder="输入新密码以更改,留空则移除密码" />
-            <button class="apply" id="applyPw2">保存设置</button>
-          </div>
-          <p class="settings-note">密码以哈希形式保存在服务器上,仅作为打开这份笔记的门槛;请勿用于存放高度敏感信息。</p>
-        </div>
-      </div>
-    `;
-
-    const area = document.getElementById('editorArea');
-    const status = document.getElementById('saveStatus');
-    let saveTimer = null;
-    let token = state.token;
-
-    async function persist(patch){
-      status.textContent = '保存中…';
-      const body = { content: area.value };
-      if(typeof patch.setPassword !== 'undefined') body.setPassword = patch.setPassword;
-      if(token) body.token = token;
-      const r = await api('/api/notes/'+encodeURIComponent(slug), { method:'PUT', body: JSON.stringify(body) });
-      if(r.ok){
-        status.textContent = '已保存 · ' + new Date().toLocaleTimeString();
-        return r.data;
-      } else {
-        status.textContent = r.status===401 ? '未授权,请重新解锁后再试' : '保存失败,请重试';
-        return null;
-      }
-    }
-
-    area.addEventListener('input', ()=>{
-      status.textContent = '输入中…';
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(()=> persist({}), 700);
-    });
-
-    document.getElementById('destroyBtn').onclick = async ()=>{
-      if(!confirm('确定要销毁笔记「'+slug+'」吗?此操作不可撤销。')) return;
-      const body = {};
-      if(token) body.token = token;
-      const r = await api('/api/notes/'+encodeURIComponent(slug), { method:'DELETE', body: JSON.stringify(body) });
-      if(r.ok){
-        nav('#/');
-      } else if(r.status===401){
-        alert('无权限删除,请重新解锁笔记后再试');
-      } else {
-        alert('删除失败');
-      }
+    function enqueue(fn){ const next = chain.then(fn); chain = next.catch(e => { if(current === generation) markError(e); }); return next; }
+    area.oninput = () => { clearTimeout(timer); status.textContent = !state.exists || dirty ? '待保存 · 请点击保存保护设置' : '输入中…'; if(state.exists && !dirty && !stopped) timer = setTimeout(() => enqueue(() => save()).catch(()=>{}), 700); };
+    panel.addEventListener('input', () => { dirty = true; clearTimeout(timer); status.textContent = '保护设置待保存'; });
+    document.getElementById('lockBtn').onclick = () => panel.classList.toggle('open');
+    document.getElementById('saveSettings').onclick = async () => {
+      if(settingsBusy || stopped) return;
+      const button = document.getElementById('saveSettings'), err = document.getElementById('settingsError'); err.textContent = '';
+      const selected = mode.value, password = selected === 'none' ? '' : document.getElementById('newPw').value || (state.hasPassword ? state.password : '');
+      const question = selected === 'question' ? document.getElementById('customQuestion').value.trim() : '';
+      if(selected !== 'none' && !password) { err.textContent = '请设置密码或答案。'; return; }
+      if(selected === 'question' && !question) { err.textContent = '请填写自定义问题。'; return; }
+      const config = { encrypted:document.getElementById('e2ee').checked, burnAfterRead:document.getElementById('burnAfterRead').checked, hasPassword:selected !== 'none', question, password, secret:state.secret, keys:state.keys };
+      settingsBusy = true; button.disabled = true; area.readOnly = true; clearTimeout(timer);
+      for(const el of panel.querySelectorAll('input,select')) el.disabled = true;
+      try { const ok = await enqueue(() => save(config)); if(ok) { dirty = false; document.getElementById('newPw').value = ''; button.textContent = '保存保护设置'; panel.classList.remove('open'); } }
+      catch(_) {} finally { settingsBusy = false; if(current === generation) { button.disabled = false; area.readOnly = false; for(const el of panel.querySelectorAll('input,select')) el.disabled = false; } }
     };
-
-    document.getElementById('copyLink').onclick = async (e)=>{
-      const url = location.origin + '/#/n/' + encodeURIComponent(slug);
-      try{
-        await navigator.clipboard.writeText(url);
-        e.target.textContent = '✓ 已复制';
-        setTimeout(()=> e.target.textContent = '🔗 复制链接', 1500);
-      }catch(err){ prompt('复制此链接:', url); }
+    document.getElementById('copyLink').onclick = async e => {
+      const button = e.currentTarget;
+      if(!state.exists || dirty || settingsBusy || stopped) { status.textContent = '请先保存便签及保护设置。'; return; }
+      try {
+        clearTimeout(timer); await enqueue(() => save());
+        if(stopped || current !== generation) return;
+        const url = location.origin + location.pathname + '#/n/' + encodeURIComponent(slug) + (state.encrypted ? '?k=' + state.secret : '');
+        try { await navigator.clipboard.writeText(url); button.textContent = '✓ 已复制'; } catch(_) { prompt('保存完整分享链接：', url); }
+      } catch(_) {}
     };
-
-    const panel = document.getElementById('settingsPanel');
-    document.getElementById('lockBtn').onclick = ()=> panel.classList.toggle('open');
-
-    document.getElementById('applyPw').onclick = async ()=>{
-      const val = document.getElementById('newPw').value;
-      if(!val) return;
-      const data = await persist({ setPassword: val });
-      if(data){
-        // 保存新密码到本地
-        localStorage.setItem(PW_STORAGE_KEY + slug, val);
-        // 设置密码后需要重新获取解锁令牌:直接刷新为已解锁状态
-        state.hasPassword = true; state.content = area.value;
-        renderEditor(root, slug, state); // 注意:此处 token 会失效,下方逻辑做了处理
-        // 由于设置密码会清空旧 token,这里立即用刚设的密码换取新 token,保证当前会话可继续编辑
-        const r2 = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', { method:'POST', body: JSON.stringify({ password: val }) });
-        if(r2.ok && r2.data.ok){
-          state.token = r2.data.token;
-          renderEditor(root, slug, state);
-        }
-      }
-    };
-    document.getElementById('applyPw2').onclick = async ()=>{
-      const val = document.getElementById('newPw2').value;
-      const data = await persist({ setPassword: val || '' });
-      if(data){
-        if(val){
-          const r2 = await api('/api/notes/'+encodeURIComponent(slug)+'/unlock', { method:'POST', body: JSON.stringify({ password: val }) });
-          state.hasPassword = true;
-          state.token = r2.ok ? r2.data.token : null;
-          // 保存新密码
-          localStorage.setItem(PW_STORAGE_KEY + slug, val);
-        } else {
-          state.hasPassword = false;
-          state.token = null;
-          // 移除了密码，清除本地记录
-          localStorage.removeItem(PW_STORAGE_KEY + slug);
-        }
-        state.content = area.value;
-        renderEditor(root, slug, state);
-      }
+    document.getElementById('destroyBtn').onclick = async () => {
+      if(!confirm('确定销毁这份便签？此操作无法撤销。')) return;
+      clearTimeout(timer);
+      try { await enqueue(async () => { if(!state.exists) { stopped = true; scrub(); notice(root, '未保存的便签已丢弃。'); return; } const r = await api(endpoint(slug), 'DELETE', { token:state.token, revision:state.revision }); if(!r.ok) throw failure(r); stopped = true; forget(slug); scrub(); notice(root, '正文和访问凭据已删除。'); }); } catch(_) {}
     };
   }
-
-  // ---------------- FEEDBACK ----------------
-  async function renderFeedback(){
-    app.innerHTML = `
-      ${topnavHtml('fb')}
-      <div class="fb-wrap">
-        <div class="fb-card">
-          <div class="perforation"></div>
-          <h2>问题反馈</h2>
-          <p class="desc">遇到问题、有改进想法,或者只是想打个招呼?写在下面。反馈公开可见,请不要包含隐私信息。</p>
-          <label>你的称呼(可选)</label>
-          <input type="text" id="fbName" placeholder="匿名" />
-          <label>反馈内容</label>
-          <textarea id="fbMsg" placeholder="说说发生了什么…"></textarea>
-          <button class="go-btn fb-submit" id="fbSubmit">提交反馈</button>
-          <p class="fb-msg" id="fbMsgOk">已收到,感谢反馈!</p>
-        </div>
-        <div class="fb-list-wrap">
-          <div class="fb-list-title">最近反馈</div>
-          <div id="fbList"><p class="fb-empty">加载中…</p></div>
-        </div>
-      </div>
-    `;
-    document.getElementById('fbSubmit').onclick = submitFeedback;
-    loadFeedback();
-  }
-
-  async function submitFeedback(){
-    const name = document.getElementById('fbName').value.trim().slice(0,30);
-    const msg = document.getElementById('fbMsg').value.trim();
-    if(!msg) return;
-    const r = await api('/api/feedback', { method:'POST', body: JSON.stringify({ name, message: msg }) });
-    if(r.ok){
-      document.getElementById('fbMsg').value='';
-      document.getElementById('fbName').value='';
-      const ok = document.getElementById('fbMsgOk');
-      ok.style.display='block';
-      setTimeout(()=> ok.style.display='none', 2500);
-      loadFeedback();
-    } else {
-      alert('提交失败,请稍后再试');
-    }
-  }
-
-  async function loadFeedback(){
-    const list = document.getElementById('fbList');
-    const r = await api('/api/feedback?limit=25');
-    if(!r.ok || !r.data.items || r.data.items.length===0){
-      list.innerHTML = '<p class="fb-empty">还没有反馈,来写第一条吧</p>';
-      return;
-    }
-    list.innerHTML = r.data.items.map(it=>`
-      <div class="fb-item">
-        <div class="meta"><span>${escapeHtml(it.name)}</span><span>${timeAgo(it.createdAt)}</span></div>
-        <div class="body">${escapeHtml(it.message)}</div>
-      </div>
-    `).join('');
-  }
-
-  // ---------------- ROUTER ----------------
   function route(){
-    const hash = location.hash || '#/';
-    if(hash === '#/' || hash === ''){
-      renderHome();
-    } else if(hash.startsWith('#/n/')){
-      renderNote(decodeURIComponent(hash.slice(4)));
-    } else if(hash === '#/feedback'){
-      renderFeedback();
-    } else {
-      renderHome();
+    dispose(); dispose = () => {}; generation++;
+    const current = generation, hash = location.hash || '#/';
+    if(hash.startsWith('#/n/')){
+      try {
+        const [name, query] = hash.slice(4).split('?'), slug = decodeURIComponent(name), secret = new URLSearchParams(query || '').get('k');
+        if(secret) history.replaceState(null, '', location.pathname + location.search + '#/n/' + encodeURIComponent(slug));
+        open(slug, secret, current);
+      } catch(_) { home(); }
+    } else if(hash === '#/feedback') feedback(); else home();
+  }
+  function feedback(){
+    app.innerHTML = nav() + `<div class="fb-wrap"><div class="fb-card"><div class="perforation"></div><h2>问题反馈</h2><p class="desc">遇到问题、有改进想法，或者只是想打个招呼？写在下面。反馈公开可见，请不要包含隐私信息。</p><label for="fbName">你的称呼（可选）</label><input type="text" id="fbName" placeholder="匿名"><label for="fbMsg">反馈内容</label><textarea id="fbMsg" placeholder="说说发生了什么…"></textarea><button class="go-btn fb-submit" id="fbSubmit">提交反馈</button><p class="fb-msg" id="fbMsgOk">已收到，感谢反馈！</p></div><div class="fb-list-wrap"><div class="fb-list-title">最近反馈</div><div id="fbList"></div></div></div>`;
+    const list=document.getElementById('fbList');
+    async function load(){
+      try{ const r=await api('/api/feedback?limit=25'); if(!list.isConnected)return;
+        list.innerHTML=r.data.items?.length?r.data.items.map(it=>`<div class="fb-item"><div class="meta"><span>${escapeHtml(it.name)}</span><span>${escapeHtml(new Date(it.createdAt).toLocaleString())}</span></div><div class="body">${escapeHtml(it.message)}</div></div>`).join(''):'<p class="fb-empty">还没有反馈，来写第一条吧</p>';
+      }catch(_){if(list.isConnected)list.textContent='加载失败，请稍后重试。';}
     }
+    document.getElementById('fbSubmit').onclick=async()=>{
+      const name=document.getElementById('fbName').value.trim().slice(0,30),message=document.getElementById('fbMsg').value.trim();if(!message)return;
+      try{const r=await api('/api/feedback','POST',{name,message});if(!r.ok)throw failure(r);if(!list.isConnected)return;document.getElementById('fbMsg').value='';document.getElementById('fbName').value='';document.getElementById('fbMsgOk').style.display='block';load();}catch(_){alert('提交失败，请稍后再试');}
+    };load();
   }
   window.addEventListener('hashchange', route);
+  window.addEventListener('pageshow', e => { if(e.persisted) route(); });
   route();
 })();
 </script>

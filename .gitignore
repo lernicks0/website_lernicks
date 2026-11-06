@@ -12,3 +12,6 @@ class-auth/sessions.json
 class-auth/roster.json
 
 class-auth/teacher-accounts-backup-*/
+
+# Isolated note security test data and dependencies
+deploy/note-security-runtime/
