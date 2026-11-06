@@ -1,0 +1,11 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),src=fs.existsSync(path.join(root,'note-site'))?'note-site':'note-security-source';
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const {patch}=require('../deploy/patch-note-existence.cjs');
+const html=read(src==='note-site'?'note-site/index.html':'public/index.html'),client=read(src+'/existence-client.js'),css=read(src+'/existence.css');
+const baseline=html.replace(/<!-- NOTE EXISTENCE START -->[\s\S]*?<!-- NOTE EXISTENCE END -->\r?\n/,'');
+assert.equal(patch(baseline,client,css),html);assert.equal(patch(html,client,css),html);
+assert.throws(()=>patch('<html></html>',client,css),/Security release/);
+assert.throws(()=>patch(html,client+'\n// mismatched version',css),/Different/);
+assert.ok(!read('deploy/install-note-existence-20261106.sh').includes('pm2 restart'));
+console.log('PASS additive lookup patch: original page preserved, idempotence, unknown version guard, no server restart.');

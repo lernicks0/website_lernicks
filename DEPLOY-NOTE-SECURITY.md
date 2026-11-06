@@ -42,3 +42,10 @@ sh -n deploy/install-note-security-20261106.sh
 工作区隔离接口测试依赖安装在 `deploy/note-security-runtime`；仓库安装依赖后直接使用根目录 express/bcryptjs。浏览器测试需要 Playwright 和 Edge，可用 `NODE_PATH` 或 `PLAYWRIGHT_MODULE` 指定本机已有 Playwright。全部测试使用临时虚构便签，不读取或修改真实用户数据。截图在本地 `deploy/note-security-preview`。
 
 2026-11-06 已在腾讯云 OrcaTerm 以 ubuntu 登录、sudo 执行固定版本安装器，实际重启 telegram-notes，输出 NOTE_SECURITY_UPDATE_SUCCESS。代码备份 `/root/note-security-code-backup-vDF5tr4n`。公网首页 HTTP 200 且逐字匹配测试版本，随机不存在代号的元数据接口和 no-store 头正确；浏览器已确认三个选项。未创建、读取或销毁线上真实便签。
+
+
+## 独立查询入口（2026-11-06 补充）
+
+新增 `/#/check` 独立查询页，首页链接及顶部“查询便签”进入。只按用户输入的代号请求已有 `/api/notes/:slug/meta`，不读取正文、不解锁、不触发阅后即焚，也不创建查询历史。已销毁与未创建均显示不存在，服务异常显示无法确认，不据此推断不存在。
+
+只加独立展示脚本和样式，不改变保护设置。`deploy/install-note-existence-20261106.sh` 自包含安装器只局部修改并备份 `public/index.html`；不修改后端或数据、不重启进程。`tests/note-existence-ui.cjs` 已验证真实隔离阅后即焚便签查询不会改变数据，以及错误、取消请求、直达链接和 1440/390/320px 布局；`tests/note-existence-patch.cjs` 验证逐字保留原页面与重复安装。

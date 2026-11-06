@@ -8,7 +8,8 @@ const assets={client:read(source+'/security-client.js'),crypto:read(source+'/not
 const hash=read('deploy/note-security-assets/routes.sha256'),sections=JSON.parse(read('deploy/note-security-assets/sections.json'));
 const after=patchHtml(html,assets),backend=patchServer(server,hash,sections);
 assert.equal(patchHtml(after,assets),after);assert.equal(patchServer(backend,hash,sections),backend);
-assert.equal(after.replace(/\r\n/g,'\n'),read(source==='note-site'?'note-site/index.html':'public/index.html').replace(/\r\n/g,'\n'));assert.equal(backend.replace(/\r\n/g,'\n'),read(source==='note-site'?'note-site/server.js':'server.js').replace(/\r\n/g,'\n'));
+const current=read(source==='note-site'?'note-site/index.html':'public/index.html').replace(/<!-- NOTE EXISTENCE START -->[\s\S]*?<!-- NOTE EXISTENCE END -->\r?\n/,'');
+assert.equal(after.replace(/\r\n/g,'\n'),current.replace(/\r\n/g,'\n'));assert.equal(backend.replace(/\r\n/g,'\n'),read(source==='note-site'?'note-site/server.js':'server.js').replace(/\r\n/g,'\n'));
 assert.equal(patchServer(server.replace(/\r\n/g,'\n'),hash,sections).replace(/\r\n/g,'\n'),backend.replace(/\r\n/g,'\n'));
 assert.throws(()=>patchHtml(html.replace('function renderGate(root, slug)','function renderGateChanged(root, slug)'),assets),/client changed/);
 assert.throws(()=>patchServer(server.replace("const token = crypto.randomBytes(24)","const token = crypto.randomBytes(32)"),hash,sections),/authentication changed/);
