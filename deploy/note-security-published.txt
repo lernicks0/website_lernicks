@@ -1,0 +1,22 @@
+便签保护功能 · 2026-11-06
+
+GitHub master 已发布最终功能提交：403dd0af0afeed047637101ed71d89c1bcd31391
+安装器：deploy/install-note-security-20261106.sh（自包含，57504 字节，以实际 SHA-256 为准）
+SHA-256：d2cbce2a819b12d0512055d6ade8aa6df0f1ae1ce38f2d2daf4cb267080ea5f4
+已从固定提交的 jsDelivr 下载并逐字校验。后续文档提交不改变此固定安装版本。
+
+在腾讯云 WebShell 粘贴：
+
+curl -fL --retry 3 --connect-timeout 15 --max-time 180 -o /tmp/note-security-install.sh "https://cdn.jsdelivr.net/gh/lernicks0/website_lernicks@403dd0af0afeed047637101ed71d89c1bcd31391/deploy/install-note-security-20261106.sh" &&
+echo 'd2cbce2a819b12d0512055d6ade8aa6df0f1ae1ce38f2d2daf4cb267080ea5f4  /tmp/note-security-install.sh' | sha256sum -c - &&
+sudo bash /tmp/note-security-install.sh
+
+成功标志：NOTE_SECURITY_UPDATE_SUCCESS backup=/root/note-security-code-backup-...
+
+状态：代码和安装器已发布；本轮未执行服务器安装、未重启线上进程，不能称为已经上线。
+浏览器盘点只有新标签页，没有现成腾讯云控制台／WebShell 标签页。
+只更新 /root/telegram-notes 的 server.js、public/index.html、note-security.cjs，只重启 telegram-notes。
+不复制便签数据建立新备份、不改域名或其他站点。详细语义、加密格式和边界见 DEPLOY-NOTE-SECURITY.md。
+
+已通过：后端接口、旧密码兼容、公开自定义问题、输错即焚、正确阅读后销毁、20 个并发读取至多一个成功、磁盘失败不泄漏正文、重启后仍删除、旧编辑器不能复活、真实 Web Crypto 与网络请求、主题切换和自动保存、1440/390/320px 布局、安装补丁和自包含资产一致性、shell 语法。
+没有上传、阅读或销毁线上真实便签。
