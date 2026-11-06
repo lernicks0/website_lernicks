@@ -49,3 +49,5 @@ sh -n deploy/install-note-security-20261106.sh
 新增 `/#/check` 独立查询页，首页链接及顶部“查询便签”进入。只按用户输入的代号请求已有 `/api/notes/:slug/meta`，不读取正文、不解锁、不触发阅后即焚，也不创建查询历史。已销毁与未创建均显示不存在，服务异常显示无法确认，不据此推断不存在。
 
 只加独立展示脚本和样式，不改变保护设置。`deploy/install-note-existence-20261106.sh` 自包含安装器只局部修改并备份 `public/index.html`；不修改后端或数据、不重启进程。`tests/note-existence-ui.cjs` 已验证真实隔离阅后即焚便签查询不会改变数据，以及错误、取消请求、直达链接和 1440/390/320px 布局；`tests/note-existence-patch.cjs` 验证逐字保留原页面与重复安装。
+
+2026-11-06 独立查询入口已实际安装并完成公网验证。固定提交、校验值、备份与记录见 `deploy/note-existence-published.txt`。

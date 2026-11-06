@@ -1,0 +1,18 @@
+便签独立查询入口 · 2026-11-06
+固定功能提交：2c78cc1d797b801ef1031fde6ae9c20c24c758d4
+安装器：deploy/install-note-existence-20261106.sh
+SHA-256：530f79200d990494034fd6b0c657e8572528cbdf71e7b3b20749d3bbbb49ba1d
+固定 CDN 下载已核对，10364 字节。
+
+2026-11-06 已由助手在腾讯云 OrcaTerm ubuntu 会话 sudo 安装，输出 NOTE_EXISTENCE_UPDATE_SUCCESS。
+代码备份：/root/note-existence-code-backup-Nq2cT3JW
+仅局部添加 public/index.html 独立查询脚本和样式，保留原内容；未修改后端、便签数据或重启进程。
+
+入口：https://note.lernicks.cn/#/check
+首页和顶部导航各有独立入口，不是保护设置选项。
+只请求指定代号的 meta，不读正文、不解锁、不触发阅后即焚、不保存查询历史；已销毁与未创建均显示不存在。
+
+验证：本地隔离阅后即焚便签查询未改变数据，存在/不存在/异常/过时结果取消、直达链接、主题与 1440/390/320px 布局通过。
+公网首页 HTTP 200，逐字匹配发布版本，浏览器独立查询页和随机不存在代号的查询结果已验证。
+证据：deploy/note-existence-preview/server-installed.png、live-query.png、live-verification.json。
+未创建、读取或销毁线上真实便签。
