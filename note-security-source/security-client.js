@@ -137,7 +137,7 @@
       settingsBusy = true; button.disabled = true; area.readOnly = true; clearTimeout(timer);
       for(const el of panel.querySelectorAll('input,select')) el.disabled = true;
       try { const ok = await enqueue(() => save(config)); if(ok) { dirty = false; document.getElementById('newPw').value = ''; button.textContent = '保存保护设置'; panel.classList.remove('open'); } }
-      catch(_) {} finally { settingsBusy = false; if(current === generation) { button.disabled = false; area.readOnly = false; for(const el of panel.querySelectorAll('input,select')) el.disabled = false; } }
+      catch(_) {} finally { settingsBusy = false; if(current === generation) { button.disabled = stopped; area.readOnly = stopped; for(const el of panel.querySelectorAll('input,select')) el.disabled = false; } }
     };
     document.getElementById('copyLink').onclick = async e => {
       const button = e.currentTarget;
@@ -152,7 +152,7 @@
     document.getElementById('destroyBtn').onclick = async () => {
       if(!confirm('确定销毁这份便签？此操作无法撤销。')) return;
       clearTimeout(timer);
-      try { await enqueue(async () => { if(!state.exists) { stopped = true; scrub(); notice(root, '未保存的便签已丢弃。'); return; } const r = await api(endpoint(slug), 'DELETE', { token:state.token, revision:state.revision }); if(!r.ok) throw failure(r); stopped = true; forget(slug); scrub(); notice(root, '正文和访问凭据已删除。'); }); } catch(_) {}
+      try { await enqueue(async () => { if(!state.exists) { stop(); scrub(); notice(root, '未保存的便签已丢弃。'); return; } const r = await api(endpoint(slug), 'DELETE', { token:state.token, revision:state.revision }); if(!r.ok) throw failure(r); stop(); forget(slug); scrub(); notice(root, '正文和访问凭据已删除。'); }); } catch(_) {}
     };
   }
   function route(){
