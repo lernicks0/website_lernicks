@@ -5,6 +5,8 @@ const {patch}=require('../deploy/patch-note-existence.cjs');
 const html=read(src==='note-site'?'note-site/index.html':'public/index.html'),client=read(src+'/existence-client.js'),css=read(src+'/existence.css');
 const baseline=html.replace(/<!-- NOTE EXISTENCE START -->[\s\S]*?<!-- NOTE EXISTENCE END -->\r?\n/,'');
 assert.equal(patch(baseline,client,css),html);assert.equal(patch(html,client,css),html);
+const previous=baseline.replace('</body>',()=>read('test-fixtures/note-existence-id-only.txt')+'</body>');
+assert.equal(patch(previous,client,css),html,'Upgrade must replace only the known old lookup block');
 assert.throws(()=>patch('<html></html>',client,css),/Security release/);
 assert.throws(()=>patch(html,client+'\n// mismatched version',css),/Different/);
 assert.ok(!read('deploy/install-note-existence-20261106.sh').includes('pm2 restart'));

@@ -51,3 +51,8 @@ sh -n deploy/install-note-security-20261106.sh
 只加独立展示脚本和样式，不改变保护设置。`deploy/install-note-existence-20261106.sh` 自包含安装器只局部修改并备份 `public/index.html`；不修改后端或数据、不重启进程。`tests/note-existence-ui.cjs` 已验证真实隔离阅后即焚便签查询不会改变数据，以及错误、取消请求、直达链接和 1440/390/320px 布局；`tests/note-existence-patch.cjs` 验证逐字保留原页面与重复安装。
 
 2026-11-06 独立查询入口已实际安装并完成公网验证。固定提交、校验值、备份与记录见 `deploy/note-existence-published.txt`。
+
+
+### 查询支持完整网址
+
+独立查询页现在可输入笔记代号或完整便签网址，支持 `https://note.lernicks.cn/#/n/代号`、无协议的本站网址、相对 hash 链接及 `?k=...` 加密分享链接。只在浏览器解析代号，密钥不进入任何查询请求，也不参与结果显示。链接中的中文编码和大小写原样处理。非本站网址、错误编码、非便签页面或非法代号会在本地提示，不发请求。升级器只替换已核对 SHA-256 的旧查询块，不改变便签核心代码。
