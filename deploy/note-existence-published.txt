@@ -16,3 +16,9 @@ SHA-256：530f79200d990494034fd6b0c657e8572528cbdf71e7b3b20749d3bbbb49ba1d
 公网首页 HTTP 200，逐字匹配发布版本，浏览器独立查询页和随机不存在代号的查询结果已验证。
 证据：deploy/note-existence-preview/server-installed.png、live-query.png、live-verification.json。
 未创建、读取或销毁线上真实便签。
+
+网址输入补充（2026-11-06 已安装）：
+固定功能提交 dd26f6597de75e6d3d8a65dbb2912101b11fb7c4；安装器 SHA-256 4af6a5a09180b8d99ada707a1db6a02d4c02ba64ae937509e34f2bbf74fd40a3，12480 字节，固定 CDN 校验已通过。
+已在 OrcaTerm sudo 安装，代码备份 /root/note-existence-code-backup-9So8mhC6；仅替换已核对的旧查询块，无数据改动或重启。
+支持代号、完整本站网址、无协议本站网址和 hash 链接。加密链接只提取代号，密钥不发送。中文编码、大小写、无效／外站链接和密钥不入网络的浏览器测试通过。
+公网页面逐字匹配新版，完整网址查询结果已由浏览器核实。证据 deploy/note-existence-preview/url-installed.png、url-live-query.png、url-live-verification.json。
