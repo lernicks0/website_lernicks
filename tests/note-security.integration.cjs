@@ -13,7 +13,7 @@ async function fixture(seed = {}) {
   app.get('/',(req,res)=>res.type('html').send(fs.readFileSync(path.join(root,source==='note-site'?'note-site/index.html':'public/index.html'))));
   const server = await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
   const origin = 'http://127.0.0.1:' + server.address().port;
-  const api = async(slug, method='GET', body, suffix='') => {const r=await fetch(origin+'/api/notes/'+encodeURIComponent(slug)+suffix,{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:r.status,headers:r.headers,data:method==='HEAD'?null:await r.json()};};
+  const api = async(slug, method='GET', body, suffix='', headers={}) => {const r=await fetch(origin+'/api/notes/'+encodeURIComponent(slug)+suffix,{method,headers:{'Content-Type':'application/json',...headers},body:body===undefined?undefined:JSON.stringify(body)});return {status:r.status,headers:r.headers,data:method==='HEAD'?null:await r.json()};};
   return {dir,file,origin,api,store:()=>JSON.parse(fs.readFileSync(file,'utf8')),close:()=>new Promise(r=>server.close(r))};
 }
 module.exports = {fixture};
@@ -27,6 +27,27 @@ async function main(){
     r=await api('protected','POST',{password:'legacy-password'},'/unlock');assert.equal(r.data.content,'旧私密正文');
     let p=await api('protected','PUT',{token:r.data.token,revision:r.data.revision,content:'更新旧便签',question:'旧密码是什么？'});assert.equal(p.status,200);
     assert.equal((await api('protected','GET',undefined,'/meta')).data.question,'旧密码是什么？');
+    const edge = { 'x-real-ip': '104.16.1.1' };
+    const first = { ...edge, 'cf-connecting-ip': '2001:db8::10' };
+    const second = { ...edge, 'cf-connecting-ip': '2001:db8::20' };
+    for (let i=0;i<5;i++) {
+      r=await api('protected','POST',{password:'wrong'},i%2?'/read':'/unlock',first);
+      assert.equal(r.status,401);
+    }
+    r=await api('protected','POST',{password:'legacy-password'},'/read',{...first,'cf-connecting-ip':'2001:db8:0:0:0:0:0:10'});
+    assert.equal(r.status,429);
+    assert.ok(Number(r.headers.get('retry-after'))>0 && Number(r.headers.get('retry-after'))<=60);
+    assert.equal((await api('protected','POST',{password:'legacy-password'},'/unlock',second)).status,200);
+    assert.equal((await api('protected','POST',{password:'legacy-password'},'/read',edge)).status,400);
+    const other=await api('other','PUT',{create:true,content:'另一个便签',setPassword:'other-pass'});assert.equal(other.status,200);
+    assert.equal((await api('other','POST',{password:'other-pass'},'/read',first)).status,200);
+    const direct={'x-real-ip':'198.51.100.10'};
+    for(let i=0;i<5;i++) assert.equal((await api('protected','POST',{password:'wrong'},'/read',{...direct,'cf-connecting-ip':'203.0.113.'+(i+1)})).status,401);
+    assert.equal((await api('protected','POST',{password:'legacy-password'},'/read',{...direct,'cf-connecting-ip':'203.0.113.99','x-forwarded-for':'203.0.113.100'})).status,429);
+    const realNow=Date.now;
+    Date.now=()=>realNow()+61000;
+    try { assert.equal((await api('protected','POST',{password:'legacy-password'},'/read',direct)).status,200); }
+    finally { Date.now=realNow; }
     let n=await api('burn','PUT',{create:true,content:'一次性正文',burnAfterRead:true});assert.equal(n.status,200);
     assert.match(n.headers.get('cache-control'),/no-store/);
     assert.equal((await api('burn')).status,403);assert.equal((await api('burn','HEAD')).status,403);
@@ -72,7 +93,7 @@ async function main(){
     assert.equal((await api('bad-plaintext','PUT',{...encrypted,content:'plaintext'})).status,400);
     const disk=f.store(); await f.close();
     const restart=await fixture(disk);try{assert.equal((await restart.api('burn','GET',undefined,'/meta')).data.exists,false);assert.equal((await restart.api('protected','POST',{password:'legacy-password'},'/read')).data.content,'更新旧便签');}finally{await restart.close();}
-    console.log('PASS note security: legacy access, custom questions, single-use concurrent reads, wrong-password destruction, encrypted auth/key rotation/tampering, no resurrection, durable deletion and disk-failure safety, restart, no-store, GET/HEAD safety.');
+    console.log('PASS note security: per-IP bans, proxy header checks, expiry, legacy access, custom questions, single-use concurrent reads, wrong-password destruction, encrypted auth/key rotation/tampering, no resurrection, durable deletion and disk-failure safety, restart, no-store, GET/HEAD safety.');
   } finally { await f.close(); }
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});

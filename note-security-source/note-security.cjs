@@ -2,11 +2,56 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { BlockList, SocketAddress, isIP } = require('node:net');
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 const validSlug = s => typeof s === 'string' && /^[a-zA-Z0-9\-_\u4e00-\u9fa5]{1,60}$/.test(s);
 const hash = s => crypto.createHash('sha256').update(s).digest('hex');
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 const random = () => crypto.randomBytes(24).toString('hex');
+const ATTEMPT_LIMIT = 5;
+const ATTEMPT_WINDOW_MS = 60000;
+const MAX_ATTEMPT_BUCKETS = 10000;
+
+// Cloudflare's published origin networks: https://www.cloudflare.com/ips/
+const cloudflare = new BlockList();
+for (const [family, ranges] of [
+  ['ipv4', [
+    '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+    '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+    '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+    '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'
+  ]],
+  ['ipv6', [
+    '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+    '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32'
+  ]]
+]) {
+  for (const range of ranges) {
+    const [address, prefix] = range.split('/');
+    cloudflare.addSubnet(address, Number(prefix), family);
+  }
+}
+
+function normalizeIp(value) {
+  if (typeof value !== 'string' || value.includes('%')) return null;
+  const family = isIP(value);
+  if (family === 4) return value;
+  if (family !== 6) return null;
+  const { address } = new SocketAddress({ address: value, family: 'ipv6' });
+  return address.startsWith('::ffff:') ? address.slice(7) : address;
+}
+
+function clientIp(req) {
+  const socket = normalizeIp(req.socket.remoteAddress);
+  if (!socket) return null;
+  // The local Nginx proxy overwrites X-Real-IP with its actual connection peer.
+  const peer = socket === '127.0.0.1' || socket === '::1'
+    ? normalizeIp(req.headers['x-real-ip']) || socket
+    : socket;
+  if (!cloudflare.check(peer, isIP(peer) === 4 ? 'ipv4' : 'ipv6')) return peer;
+  // Missing visitor IP must not put all visitors behind the same edge in one bucket.
+  return normalizeIp(req.headers['cf-connecting-ip']);
+}
 const validEnvelope = e => e && e.v === 1 && e.kdf === 'PBKDF2-SHA256' && e.iterations === 600000 &&
   typeof e.salt === 'string' && /^[A-Za-z0-9_-]{22}$/.test(e.salt) &&
   typeof e.iv === 'string' && /^[A-Za-z0-9_-]{16}$/.test(e.iv) &&
@@ -48,7 +93,25 @@ function install(app, { dataDir, express = require('express'), bcrypt = require(
     const t = tokens.get(slug);
     return t && t.expires > Date.now() && typeof token === 'string' && same(t.hash, hash(token));
   }
-  function erase(slug) { commit(slug, null); tokens.delete(slug); attempts.delete(slug); }
+  function erase(slug) {
+    commit(slug, null);
+    tokens.delete(slug);
+    const prefix = slug + ':';
+    for (const key of attempts.keys()) if (key.startsWith(prefix)) attempts.delete(key);
+  }
+  function recordFailure(key, attempt, now) {
+    const count = (attempt?.count || 0) + 1;
+    const blocked = count >= ATTEMPT_LIMIT;
+    attempts.delete(key);
+    attempts.set(key, { count, blocked, expires: now + ATTEMPT_WINDOW_MS });
+    // Keep the newest buckets, without clearing every active ban under load.
+    while (attempts.size > MAX_ATTEMPT_BUCKETS) attempts.delete(attempts.keys().next().value);
+  }
+  const sweepAttempts = setInterval(() => {
+    const now = Date.now();
+    for (const [key, attempt] of attempts) if (attempt.expires <= now) attempts.delete(key);
+  }, ATTEMPT_WINDOW_MS);
+  sweepAttempts.unref();
   function meta(n) {
     if (!n) return { exists: false, hasPassword: false, encrypted: false, burnAfterRead: false };
     return { exists: true, hasPassword: !!n.hasPassword, question: n.question || '', encrypted: !!n.encrypted,
@@ -84,23 +147,29 @@ function install(app, { dataDir, express = require('express'), bcrypt = require(
     // Old clients must never accidentally consume a burn note via auto-unlock.
     if (n.burnAfterRead && (req.path.endsWith('/unlock') || b.confirmRead !== true)) return res.status(409).json({ error: 'CONFIRM_READ_REQUIRED' });
     if (b.revision !== undefined && b.revision !== revision(n)) return res.status(409).json({ error: 'CONFLICT' });
-    if (!n.burnAfterRead) {
-      const attempt = attempts.get(slug);
-      if (attempt && attempt.until > Date.now()) return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+    let attemptKey, attempt;
+    if (!n.burnAfterRead && (n.hasPassword || n.encrypted)) {
+      const ip = clientIp(req);
+      if (!ip) return res.status(400).json({ error: 'CLIENT_IP_UNAVAILABLE' });
+      attemptKey = `${slug}:${revision(n)}:${ip}`;
+      attempt = attempts.get(attemptKey);
+      const now = Date.now();
+      if (attempt?.expires <= now) { attempts.delete(attemptKey); attempt = undefined; }
+      if (attempt?.blocked) {
+        res.set('Retry-After', String(Math.ceil((attempt.expires - now) / 1000)));
+        return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+      }
     }
     const ok = n.encrypted ? (typeof b.accessKey === 'string' && /^[A-Za-z0-9_-]{43}$/.test(b.accessKey) && same(hash(b.accessKey), n.accessHash)) :
       !n.hasPassword || await bcrypt.compare(String(b.password || ''), n.passwordHash);
     if (!ok) {
       if (n.burnAfterRead) { erase(slug); return res.status(410).json({ error: 'DESTROYED_WRONG_PASSWORD', destroyed: true }); }
-      if (attempts.size > 10000) attempts.clear();
-      const a = attempts.get(slug) || { count: 0, until: 0 }; a.count++;
-      if (a.count >= 5) { a.count = 0; a.until = Date.now() + 60000; }
-      attempts.set(slug, a);
+      recordFailure(attemptKey, attempt, Date.now());
       return res.status(401).json({ error: 'WRONG_PASSWORD' });
     }
     const result = payload(n);
     if (n.burnAfterRead) { erase(slug); return res.json({ ...result, destroyed: true }); }
-    attempts.delete(slug);
+    if (attemptKey) attempts.delete(attemptKey);
     res.json({ ...result, ok: true, token: issue(slug) });
   });
   router.post('/:slug/read', read);
@@ -136,7 +205,7 @@ function install(app, { dataDir, express = require('express'), bcrypt = require(
     }
     if (b.question !== undefined && (typeof b.question !== 'string' || b.question.length > 200)) return res.status(400).json({ error: 'INVALID_QUESTION' });
     n.question = n.hasPassword ? (b.question === undefined ? n.question || '' : b.question) : '';
-    commit(slug, n); tokens.delete(slug); attempts.delete(slug);
+    commit(slug, n); tokens.delete(slug);
     res.json({ ok: true, ...meta(n), token: issue(slug), updatedAt: n.updatedAt });
   }));
   router.delete('/:slug', run((req, res, slug) => {
