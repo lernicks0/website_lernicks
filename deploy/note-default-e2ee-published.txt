@@ -1,0 +1,13 @@
+新建便签默认端到端加密 · 2026-11-07
+功能提交：97834018d75dfd6c367f1042e8dfcfa065520717
+自包含安装器：deploy/install-note-default-e2ee-20261106.sh
+SHA-256：a9ceb38a97dd0286b5cc223596b1346a1e37c186bace2bf34e374aaa80f9ac20
+
+2026-11-07 用户扫码恢复腾讯云登录后，助手通过 OrcaTerm ubuntu 会话 sudo 安装，输出 NOTE_DEFAULT_E2EE_UPDATE_SUCCESS。
+代码备份：/root/note-default-e2ee-code-backup-KmV4yTPM
+只局部更新前端新建状态和说明，不修改旧便签、后端或数据，无需重启。
+新便签默认开启加密，首次保存后继续自动保存；可主动取消勾选。旧便签沿用原格式，避免自动转换丢失密钥链接。
+
+本地真实加解密、默认密文上传、旧明文兼容、主动取消默认加密及安装补丁测试通过。
+公网首页 HTTP 200，逐字匹配测试版本；线上新建页已确认默认勾选端到端加密，没有实际保存测试便签。
+证据 deploy/note-security-preview/default-installed.png、default-live.png、default-live-verification.json。
