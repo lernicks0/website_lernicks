@@ -11,6 +11,7 @@ COPY . .
 VOLUME ["/app/data"]
 
 ENV PORT=3000
+ENV NOTE_BIND_HOST=0.0.0.0
 EXPOSE 3000
 
 CMD ["node", "server.js"]

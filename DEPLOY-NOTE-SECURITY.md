@@ -71,3 +71,9 @@ sh -n deploy/install-note-security-20261106.sh
 - `/read` 和旧 `/unlock` 共用限流。对同一便签连续输错 5 次后，该来源 IP 封锁 60 秒，响应为 HTTP 429，带 `Retry-After`。不同 IP 仍可解锁。同一共享出口的访客共用限额。尝试计数只保存在进程内存，阅后即焚流程沿用原规则。
 - 线上 Nginx 向本机 Node 转发时以连接地址覆盖 `X-Real-IP`。应用仅从本机代理信任此头，并仅对 Cloudflare 公布的连接来源网段读取 `CF-Connecting-IP`。若调整代理或 Cloudflare 网段，部署时应同步核对该信任边界。直连请求提供的 `CF-Connecting-IP` 不参与限流。
 - 安装器 `deploy/install-note-ip-limit-20261107.sh` 接收固定发布提交，校验前后模块哈希。在服务器用隔离便签验证两个来源后，只替换 `note-security.cjs` 并重启 `telegram-notes`。安装失败恢复模块。浏览器和 Nginx 配置无需变更。
+
+### 便签站限制公网 HTTP
+
+- `note.lernicks.cn` 的访客 HTTP 请求以 308 跳转到同路径 HTTPS。源站 Nginx 只接受来自 Cloudflare 公布网段的连接，拒绝绕过代理的直连，即使请求自带转发头。Cloudflare 的 Flexible 模式仍通过 HTTP 回源。
+- 便签 Node 默认仅监听 `127.0.0.1:3000`。容器镜像用 `NOTE_BIND_HOST=0.0.0.0` 保留内网访问。
+- 安装器 `deploy/install-note-https-gate-20261107.sh` 局部更新 Nginx 和便签监听入口，备份两个配置文件。验证 HTTPS、HTTP 跳转和直连拒绝，失败会尝试恢复。Cloudflare 网段更新时应与便签 IP 限流的信任网段一并核对。

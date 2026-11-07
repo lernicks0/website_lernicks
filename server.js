@@ -71,6 +71,6 @@ app.get(/^(?!\/api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, process.env.NOTE_BIND_HOST || '127.0.0.1', () => {
   console.log(`telegram-notes 已启动: http://localhost:${PORT}`);
 });
