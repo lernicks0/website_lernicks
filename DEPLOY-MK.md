@@ -4,7 +4,7 @@
 
 - Markdown + LaTeX + HTML 统一混合文档分享站，写法类似洛谷编辑器。
 - 正文默认混用 Markdown、LaTeX 与 HTML，无需选择格式。支持 `<details><summary>` 折叠内容、`<span style="color:red">` 彩色文字、HTML 表格；`.html` / `.htm` 文件也读入同一编辑器。
-- 混合内容通过本地 DOMPurify 3.4.14 过滤后显示，保留排版标签与内联样式，移除脚本、事件处理器、危险链接和嵌入页面；过滤库加载失败时仅显示原文。许可证见 `mk/purify.LICENSE`。
+- 混合内容通过本地 DOMPurify 3.4.14 过滤后显示，保留排版标签与内联样式，移除脚本、事件处理器、危险链接和嵌入页面；过滤库加载失败时仅显示原文。许可证见 `mk-site/purify.LICENSE`。
 - 旧版明确保存为 HTML 网页的文档继续使用隔离预览，旧 Markdown 文档直接获得内嵌 HTML 支持。
 - 行内公式使用 `$...$`，独立公式使用 `$$...$$`。
 - `/pre` 编辑页支持“编辑 / 实时预览”切换。
@@ -15,7 +15,15 @@
 - 文档正文：`/root/mk/documents/`
 - 文档记录：`/root/mk/data/documents.json`
 
-## 当前版本：2026-09-06 混合排版修正
+## 2026-11-07 阅读页提速
+
+- 阅读和编辑页把正文放在首个 HTML 响应中。阅读页无需再请求正文 API，且正文可先于 KaTeX 显示。
+- 页面、正文 API 继续禁止缓存正文，以便编辑和删除立即反映在后续请求中。只有 `/mk-assets/<hash>/` 下的 JS、CSS 和字体可长期缓存。
+- 同域资源来自 npm 的 markdown-it 14.1.0、KaTeX 0.17.0 和原有 DOMPurify。KaTeX 的 JS 和 CSS 与原页面的 SRI 校验值一致。第三方许可证在 `vendor/`。
+- 安装脚本 `deploy/install-mk-performance-20261107.sh` 接收完整的发布提交 ID，从固定版本下载并校验 `deploy/releases/mk-performance-20261107.tar.gz`。脚本仅替换本次版本涉及的代码，备份到 `/root/mk-performance-code-backup-*`，只重启 `mk-server`。
+- 本地测试 `node tests/mk-html.integration.js`。配置 `MK_PLAYWRIGHT_MODULE` 时也运行浏览器回归。
+
+## 2026-09-06 混合排版修正（历史）
 
 - 当前更新包：`deploy/releases/mk-mixed-html-20260906.tar.gz`。
 - 当前安装脚本：`deploy/install-mk-mixed-html-20260906.sh`，执行时传入本次发布的完整提交 ID。
@@ -38,7 +46,7 @@ cd /root/telegram-notes
 git pull --ff-only origin master
 
 mkdir -p /root/mk/data /root/mk/documents
-cp -a mk/index.html mk/document.html mk/server.js mk/html-support.js mk/purify.min.js mk/purify.LICENSE /root/mk/
+cp -a mk-site/index.html mk-site/document.html mk-site/server.js mk-site/html-support.js mk-site/purify.min.js mk-site/purify.LICENSE /root/mk/
 
 pm2 start /root/mk/server.js --name mk-server --cwd /root/mk
 pm2 save

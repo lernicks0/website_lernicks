@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#070d18">
   <title>正在加载 · Lernicks 文档</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.css" integrity="sha384-vlBdW0r3AcZO/HboRPznQNowvexd3fY8qHOWkBi5q7KGgqJ+F48+DceybYmrVbmB" crossorigin="anonymous">
+  <meta name="mk-assets" content="/mk-assets/__MK_ASSET_VERSION__/">
+  <script defer src="/mk-assets/__MK_ASSET_VERSION__/markdown-it.min.js"></script>
+  <script defer src="/mk-assets/__MK_ASSET_VERSION__/purify.min.js"></script>
+  <script defer src="/mk-assets/__MK_ASSET_VERSION__/html-support.js"></script>
   <style>
     :root{--bg:#070d18;--panel:#0e1c2e;--line:rgba(104,224,255,.18);--cyan:#68e0ff;--purple:#9b91ff;--green:#70efba;--gold:#ffd16f;--red:#ff788d;--text:#ecf7fc;--muted:#8fa7b8;--article:#dcebf2}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font-family:"Microsoft YaHei",system-ui,sans-serif;background:radial-gradient(circle at 12% 0%,rgba(35,126,180,.2),transparent 33%),radial-gradient(circle at 90% 12%,rgba(94,73,198,.16),transparent 31%),var(--bg)}body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.3;background-image:linear-gradient(rgba(104,224,255,.023) 1px,transparent 1px),linear-gradient(90deg,rgba(104,224,255,.023) 1px,transparent 1px);background-size:38px 38px;mask-image:linear-gradient(#000,transparent 88%)}button,input,textarea,select{font:inherit}.page{position:relative;width:min(980px,calc(100% - 28px));margin:auto;padding:22px 0 52px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none}.logo{width:43px;height:43px;border-radius:13px;display:grid;place-items:center;color:#06141d;font-family:Georgia,serif;font-weight:1000;background:linear-gradient(145deg,var(--cyan),#8f9cff)}.brand strong{font-size:16px}.brand span{display:block;color:var(--muted);font-size:10px;letter-spacing:.15em;margin-top:3px}.top-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.btn{padding:8px 12px;border:1px solid var(--line);border-radius:10px;color:var(--text);background:rgba(17,43,68,.7);text-decoration:none;cursor:pointer;transition:.18s}.btn:hover{border-color:rgba(104,224,255,.5);transform:translateY(-1px)}.btn.primary{border:0;color:#04151d;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--green))}.btn.danger{color:#ffdbe1;border-color:rgba(255,120,141,.32);background:rgba(111,31,47,.34)}.btn:disabled{opacity:.42;cursor:not-allowed;transform:none}
@@ -774,11 +777,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
   </div>
   <div id="toast" class="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.js" integrity="sha384-AtrdNsnxl/75rvBneBVH7DtOvCxSVahR2zWqle1coBKd8DEmLoviqNeJSx64gNAs" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/contrib/auto-render.min.js" integrity="sha384-bjyGPfbij8/NDKJhSGZNP/khQVgtHUE5exjm4Ydllo42FwIgYsdLO2lXGmRBf5Mz" crossorigin="anonymous"></script>
-  <script src="/purify.min.js"></script>
-  <script src="/html-support.js"></script>
+  <!-- MK_DOCUMENT_DATA -->
   <script>
     const MAX_BYTES=1024*1024;
     const pathMatch=location.pathname.match(/^\/d\/([a-f0-9]{16})(\/pre)?\/?$/);
@@ -793,18 +792,89 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     function toast(message,bad=false){const el=document.getElementById('toast');el.textContent=message;el.className='toast show'+(bad?' bad':'');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.className='toast',2300)}
     function escapeHtml(value){return String(value).replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}
     function showError(message){document.getElementById('loading').hidden=true;document.getElementById('error').hidden=false;document.getElementById('errorText').textContent=message}
-    async function loadDocument(){if(!documentId){showError('链接格式不正确');return}try{const response=await fetch('/api/documents/'+documentId,{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.message||'文档不存在');documentData=data.document;document.title=documentData.title+' · Lernicks 文档';document.getElementById('loading').hidden=true;if(editMode)showEditGate();else showReader()}catch(error){showError(error.message)}}
+    function loadDocument() {
+      try {
+        documentData = JSON.parse(document.getElementById('mk-document').textContent);
+        if (documentData.id !== documentId) throw new Error('文档不存在');
+        document.title = documentData.title + ' · Lernicks 文档';
+        document.getElementById('loading').hidden = true;
+        if (editMode) showEditGate();
+        else showReader();
+      } catch (_) {
+        showError('文档读取失败');
+      }
+    }
     function showReader(){document.getElementById('documentShell').classList.add('show');document.getElementById('documentTitle').textContent=documentData.title;document.getElementById('formatChip').textContent=documentData.format==='html'?'HTML 网页':documentData.format==='latex'?'旧版 LaTeX':'Markdown + LaTeX + HTML';document.getElementById('documentTime').textContent='更新于 '+new Date(documentData.updatedAt).toLocaleString('zh-CN');document.getElementById('documentSize').textContent=formatBytes(documentData.size);document.getElementById('rawButton').href='/raw/'+documentId;renderDocument();document.getElementById('renderTab').onclick=renderDocument;document.getElementById('sourceTab').onclick=showSource;document.getElementById('copyButton').onclick=()=>copyText(location.href)}
     function renderDocument(){document.getElementById('renderTab').classList.add('active');document.getElementById('sourceTab').classList.remove('active');renderInto(article,documentData.content,documentData.format)}
-    function renderInto(target,content,format){target.classList.remove('html-preview');if(format==='html'){MkHtml.renderHtml(target,content);return}if(format==='latex')target.innerHTML=renderLatexText(content);else renderMarkdown(content,target);renderMath(target)}
-    function renderMarkdown(content,target=article){if(typeof window.markdownit!=='function'){showSafePre(content,target);return}const mathBlocks=[];const protectedContent=String(content).replace(/\$\$([\s\S]*?)\$\$/g,(_,formula)=>'\n\nMKDOCMATHBLOCK'+(mathBlocks.push(formula)-1)+'END\n\n');const md=window.markdownit({html:true,breaks:true,linkify:true,typographer:true});const originalLink=md.renderer.rules.link_open||function(tokens,index,options,env,self){return self.renderToken(tokens,index,options)};md.renderer.rules.link_open=function(tokens,index,options,env,self){tokens[index].attrSet('target','_blank');tokens[index].attrSet('rel','noopener noreferrer');return originalLink(tokens,index,options,env,self)};const rendered=md.render(protectedContent).replace(/<p>MKDOCMATHBLOCK(\d+)END<\/p>/g,(_,index)=>'<div class="math-block">$$'+escapeHtml(mathBlocks[Number(index)]||'')+'$$</div>');if(!MkHtml.insertMarkdownHtml(target,rendered))showSafePre(content,target)}
+    function renderInto(target, content, format) {
+      target.classList.remove('html-preview');
+      if (format === 'html') {
+        if (window.MkHtml) MkHtml.renderHtml(target, content);
+        else showSafePre(content, target);
+        return;
+      }
+      if (format === 'latex') target.innerHTML = renderLatexText(content);
+      else if (!renderMarkdown(content, target)) {
+        showSafePre(content, target);
+        return;
+      }
+      renderMath(target);
+    }
+    function renderMarkdown(content,target){if(typeof window.markdownit!=='function'||!window.MkHtml)return false;const mathBlocks=[];const protectedContent=String(content).replace(/\$\$([\s\S]*?)\$\$/g,(_,formula)=>'\n\nMKDOCMATHBLOCK'+(mathBlocks.push(formula)-1)+'END\n\n');const md=window.markdownit({html:true,breaks:true,linkify:true,typographer:true});const rendered=md.render(protectedContent).replace(/<p>MKDOCMATHBLOCK(\d+)END<\/p>/g,(_,index)=>'<div class="math-block">$$'+escapeHtml(mathBlocks[Number(index)]||'')+'$$</div>');return MkHtml.insertMarkdownHtml(target,rendered,target===article)}
     function renderLatexText(source){let text=String(source).replace(/^\s*\\(?:documentclass|usepackage|title|author|date)(?:\[[^\]]*\])?\{.*\}\s*$/gm,'').replace(/\\begin\{document\}|\\end\{document\}|\\maketitle/g,'');text=escapeHtml(text);text=text.replace(/\\begin\{verbatim\}([\s\S]*?)\\end\{verbatim\}/g,(_,body)=>'\n\n<pre><code>'+body.trim()+'</code></pre>\n\n');text=text.replace(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/g,(_,body)=>'\n\n<ul>'+body.split(/\\item\s+/).slice(1).map(item=>'<li>'+item.trim()+'</li>').join('')+'</ul>\n\n');text=text.replace(/\\begin\{enumerate\}([\s\S]*?)\\end\{enumerate\}/g,(_,body)=>'\n\n<ol>'+body.split(/\\item\s+/).slice(1).map(item=>'<li>'+item.trim()+'</li>').join('')+'</ol>\n\n');text=text.replace(/\\begin\{quote\}([\s\S]*?)\\end\{quote\}/g,(_,body)=>'\n\n<blockquote>'+body.trim()+'</blockquote>\n\n');text=text.replace(/\\section\*?\{([^{}]*)\}/g,'\n\n<h1>$1</h1>\n\n').replace(/\\subsection\*?\{([^{}]*)\}/g,'\n\n<h2>$1</h2>\n\n').replace(/\\subsubsection\*?\{([^{}]*)\}/g,'\n\n<h3>$1</h3>\n\n');text=text.replace(/\\textbf\{([^{}]*)\}/g,'<strong>$1</strong>').replace(/\\(?:textit|emph)\{([^{}]*)\}/g,'<em>$1</em>').replace(/\\underline\{([^{}]*)\}/g,'<u>$1</u>');return text.split(/\n{2,}/).map(block=>{const clean=block.trim();if(!clean)return'';if(/^<(?:h[1-6]|ul|ol|pre|blockquote)/.test(clean))return clean;return'<p>'+clean.replace(/\\\\\s*(?:\n|$)/g,'<br>').replace(/\n/g,'<br>')+'</p>'}).join('')}
-    function renderMath(target=article){if(typeof window.renderMathInElement!=='function')return;try{window.renderMathInElement(target,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{gather}',right:'\\end{gather}',display:true}],throwOnError:false,strict:'warn',trust:false})}catch(error){console.warn('公式渲染失败',error)}}
+    const mathDelimiters = [
+      {left:'$$',right:'$$',display:true}, {left:'$',right:'$',display:false},
+      {left:'\\(',right:'\\)',display:false}, {left:'\\[',right:'\\]',display:true},
+      {left:'\\begin{equation}',right:'\\end{equation}',display:true},
+      {left:'\\begin{align}',right:'\\end{align}',display:true},
+      {left:'\\begin{gather}',right:'\\end{gather}',display:true}
+    ];
+    let mathAssets;
+    function loadMathAssets() {
+      if (mathAssets) return mathAssets;
+      const prefix = document.querySelector('meta[name="mk-assets"]').content;
+      const style = document.createElement('link');
+      style.rel = 'stylesheet';
+      style.href = prefix + 'katex.min.css';
+      const scripts = ['katex.min.js', 'auto-render.min.js'].map(name => {
+        const script = document.createElement('script');
+        script.async = false;
+        script.src = prefix + name;
+        return script;
+      });
+      const assets = [style, ...scripts];
+      mathAssets = Promise.all(assets.map(asset => new Promise((resolve, reject) => {
+        asset.onload = resolve;
+        asset.onerror = reject;
+        document.head.appendChild(asset);
+      }))).catch(error => {
+        assets.forEach(asset => asset.remove());
+        mathAssets = undefined;
+        throw error;
+      });
+      return mathAssets;
+    }
+    async function renderMath(target) {
+      const text = target.textContent;
+      if (!mathDelimiters.some(({left, right}) => {
+        const start = text.indexOf(left);
+        return start !== -1 && text.indexOf(right, start + left.length) !== -1;
+      })) return;
+      const firstChild = target.firstChild;
+      try {
+        await loadMathAssets();
+        if (target.firstChild === firstChild) {
+          window.renderMathInElement(target, {delimiters:mathDelimiters,throwOnError:false,strict:'warn',trust:false});
+        }
+      } catch (error) {
+        console.warn('公式渲染失败', error);
+      }
+    }
     function showSafePre(content,target=article){target.innerHTML='';const pre=document.createElement('pre'),code=document.createElement('code');code.textContent=content;pre.appendChild(code);target.appendChild(pre)}
     function showSource(){article.classList.remove('html-preview');document.getElementById('sourceTab').classList.add('active');document.getElementById('renderTab').classList.remove('active');article.innerHTML='';const pre=document.createElement('pre');pre.className='source-view';pre.textContent=documentData.content;article.appendChild(pre)}
     function showEditGate(){document.getElementById('editShell').classList.add('show');document.getElementById('verifyButton').onclick=verifyKey;document.getElementById('keyInput').addEventListener('keydown',event=>{if(event.key==='Enter')verifyKey()});setTimeout(()=>document.getElementById('keyInput').focus(),80)}
     async function verifyKey(){const input=document.getElementById('keyInput'),key=input.value.trim(),button=document.getElementById('verifyButton'),error=document.getElementById('keyError');if(!key){error.textContent='请先输入文档密钥';return}button.disabled=true;error.textContent='';try{const response=await fetch('/api/documents/'+documentId+'/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key})});const data=await response.json();if(!response.ok)throw new Error(data.message||'验证失败');documentKey=key;openEditor()}catch(problem){error.textContent=problem.message;input.select()}finally{button.disabled=false}}
-    function openEditor(){document.getElementById('keyGate').style.display='none';document.getElementById('editor').classList.add('show');currentEditFormat=MkHtml.resolveFormat(documentData.format,documentData.content);updateEditFormat();document.getElementById('editTitle').value=documentData.title;document.getElementById('editContent').value=documentData.content;document.getElementById('editorId').textContent='文档编号：'+documentId;document.getElementById('viewButton').href='/d/'+documentId;if(currentEditFormat==='latex')document.getElementById('mixedNote').innerHTML='<strong>旧版 LaTeX 兼容模式</strong>：这份旧文档仍按原方式渲染。';document.getElementById('editContent').addEventListener('input',updateEditCounter);document.getElementById('writeTab').onclick=showWriteEditor;document.getElementById('previewTab').onclick=showEditPreview;document.getElementById('saveButton').onclick=saveChanges;document.getElementById('deleteButton').onclick=deleteCurrent;showWriteEditor();updateEditCounter()}
+    function openEditor(){document.getElementById('keyGate').style.display='none';document.getElementById('editor').classList.add('show');currentEditFormat=window.MkHtml?.resolveFormat(documentData.format,documentData.content)||documentData.format||'mixed';updateEditFormat();document.getElementById('editTitle').value=documentData.title;document.getElementById('editContent').value=documentData.content;document.getElementById('editorId').textContent='文档编号：'+documentId;document.getElementById('viewButton').href='/d/'+documentId;if(currentEditFormat==='latex')document.getElementById('mixedNote').innerHTML='<strong>旧版 LaTeX 兼容模式</strong>：这份旧文档仍按原方式渲染。';document.getElementById('editContent').addEventListener('input',updateEditCounter);document.getElementById('writeTab').onclick=showWriteEditor;document.getElementById('previewTab').onclick=showEditPreview;document.getElementById('saveButton').onclick=saveChanges;document.getElementById('deleteButton').onclick=deleteCurrent;showWriteEditor();updateEditCounter()}
     function showWriteEditor(){clearTimeout(editPreviewTimer);document.getElementById('editPreview').replaceChildren();document.getElementById('writeTab').classList.add('active');document.getElementById('previewTab').classList.remove('active');document.getElementById('editContent').classList.remove('hidden');document.getElementById('editPreview').classList.remove('show')}
     function showEditPreview(){document.getElementById('previewTab').classList.add('active');document.getElementById('writeTab').classList.remove('active');document.getElementById('editContent').classList.add('hidden');document.getElementById('editPreview').classList.add('show');renderEditPreview()}
     function renderEditPreview(){renderInto(document.getElementById('editPreview'),document.getElementById('editContent').value,currentEditFormat)}
@@ -813,6 +883,11 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     async function deleteCurrent(){if(!confirm('确定永久删除这份文档吗？删除后阅读链接会立即失效。'))return;const button=document.getElementById('deleteButton');button.disabled=true;try{const response=await fetch('/api/documents/'+documentId,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:documentKey})});const data=await response.json();if(!response.ok)throw new Error(data.message||'删除失败');alert('文档已删除');location.replace('/')}catch(error){toast(error.message,true);button.disabled=false}}
     async function copyText(value){try{await navigator.clipboard.writeText(value)}catch(_){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}toast('链接已复制')}
     loadDocument();
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!documentData || documentData.id !== documentId) return;
+      if (editMode && document.getElementById('editPreview').classList.contains('show')) renderEditPreview();
+      if (!editMode && documentData.format !== 'latex' && document.getElementById('renderTab').classList.contains('active')) renderDocument();
+    }, {once:true});
   </script>
 </body>
 </html>

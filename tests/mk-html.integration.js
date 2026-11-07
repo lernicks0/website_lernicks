@@ -9,7 +9,10 @@ const { once } = require('node:events');
 const { detectFormat, resolveFormat } = require('../mk/html-support');
 
 const root = path.resolve(__dirname, '..');
-const runtime = fs.mkdtempSync(path.join(os.tmpdir(), 'mk-html-test-'));
+const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mk-html-test-'));
+const runtime = path.join(runtimeRoot, 'mk');
+fs.mkdirSync(runtime);
+fs.cpSync(path.join(root, 'mk', 'vendor'), path.join(runtime, 'vendor'), { recursive: true });
 const files = ['server.js', 'html-support.js', 'index.html', 'document.html', 'purify.min.js'];
 for (const file of files) fs.copyFileSync(path.join(root, 'mk', file), path.join(runtime, file));
 for (const file of ['index.html', 'document.html']) {
@@ -68,13 +71,30 @@ async function main() {
   assert.equal((await fetch(base + created.rawUrl, { method: 'HEAD' })).status, 200);
   const publicPage = await fetch(base + created.viewUrl);
   assert.equal(publicPage.headers.get('x-frame-options'), null);
+  assert.match(publicPage.headers.get('cache-control'), /no-store/);
+  const readPage = await publicPage.text();
+  const embeddedDocument = page => JSON.parse(page.match(/<script type="application\/json" id="mk-document">([^<]*)<\/script>/)[1]);
+  assert.deepEqual(embeddedDocument(readPage), saved);
+  assert.ok(!readPage.includes(created.key));
+  const helperUrl = readPage.match(/src="(\/mk-assets\/[a-f0-9]{20}\/html-support\.js)"/)[1];
+  const immutableHelper = await fetch(base + helperUrl);
+  assert.equal(immutableHelper.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+  assert.equal(await immutableHelper.text(), fs.readFileSync(path.join(runtime, 'html-support.js'), 'utf8'));
+  assert.equal((await fetch(base + helperUrl.replace(/[a-f0-9]{20}/, '0'.repeat(20)))).status, 404);
+  assert.equal((await fetch(base + helperUrl.replace('html-support.js', 'fonts/KaTeX_Main-Regular.woff2'))).headers.get('content-type'), 'font/woff2');
+  assert.equal(await (await fetch(base + created.viewUrl, { method: 'HEAD' })).text(), '');
   assert.equal((await fetch(base + created.editUrl)).headers.get('x-frame-options'), 'DENY');
   const helper = await fetch(base + '/html-support.js');
   assert.match(helper.headers.get('content-type'), /javascript/);
   assert.equal(await helper.text(), fs.readFileSync(path.join(runtime, 'html-support.js'), 'utf8'));
   await api('PUT', route, { key: 'incorrect', title: 'X', content: 'X', format: 'mixed' }, 403);
   assert.equal((await api('GET', route)).document.content, html);
-  await api('PUT', route, { key: created.key, title: '已修改', content: html + '<!-- updated -->' });
+  const attack = '</ScRiPt><script>document.body.dataset.compromised="yes"</script><!-- MK_DOCUMENT_DATA -->';
+  await api('PUT', route, { key: created.key, title: attack, content: html + attack });
+  const updatedPage = await (await fetch(base + created.viewUrl)).text();
+  assert.equal(embeddedDocument(updatedPage).title, attack);
+  assert.equal(embeddedDocument(updatedPage).content, html + attack);
+  assert.ok(!updatedPage.includes(attack));
   assert.equal((await api('GET', route)).document.format, 'html');
   await api('PUT', route, { key: created.key, title: 'HTML 测试', format: 'html', content: html });
   for (const format of [undefined, 'auto', 'mixed', 'markdown', 'latex']) {
@@ -96,12 +116,12 @@ async function main() {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && !message.text().includes('ERR_FAILED')) console.error(message.text()); });
-    const libs = process.env.MK_RENDER_LIBS || path.join(root, 'test-fixtures/mk-render-libs');
-    await context.route('https://cdn.jsdelivr.net/**', route => {
-      const name = new URL(route.request().url()).pathname.split('/').pop();
-      const fixture = path.join(libs, name);
-      return fs.existsSync(fixture) ? route.fulfill({ path: fixture, contentType: 'text/javascript' }) : route.abort();
-    });
+    await context.route('https://cdn.jsdelivr.net/**', route => route.abort());
+    await page.goto(base + created.viewUrl);
+    const legacyFrame = page.frameLocator('#article iframe');
+    await legacyFrame.getByRole('heading', { name: 'HTML 测试' }).waitFor();
+    assert.equal(await legacyFrame.locator('body').getAttribute('data-isolated'), 'yes');
+    assert.equal(await page.locator('body').getAttribute('data-compromised'), null);
     const mixed = '<span style="color:rgb(12, 34, 56)">彩色文字</span>\n\n# 混合文档\n\n**Markdown 加粗**，行内公式 $E=mc^2$。\n\n<details>\n<summary>点击查看解答</summary>\n\n**折叠里的加粗**\n\n$$x^2+y^2=z^2$$\n\n</details>\n\n<table><tr><td>HTML 表格</td></tr></table>\n\n' + '\x60\x60\x60html\n<img src=x onerror="alert(1)">\n\x60\x60\x60\n\n' + '<img src="data:image/png,invalid" onerror="document.body.dataset.compromised=\'yes\'">\n<script>document.body.dataset.compromised="yes"</script>\n<a href="javascript:alert(1)">危险链接</a>\n<style>body{display:none}</style>\n<iframe srcdoc="<script>alert(1)</script>"></iframe>';
     await page.goto(base);
     assert.equal(await page.locator('#formatInput').count(), 0);
@@ -130,8 +150,18 @@ async function main() {
     const record = (await api('GET', '/api/documents/' + createdId)).document;
     assert.equal(record.format, 'mixed');
     assert.equal(record.content, mixed);
-    await page.goto(viewUrl);
+    let bodyRequests = 0;
+    page.on('request', request => {
+      if (request.method() === 'GET' && new URL(request.url()).pathname.startsWith('/api/documents/')) bodyRequests++;
+    });
+    let releaseMath;
+    const waitForMath = new Promise(resolve => { releaseMath = resolve; });
+    await context.route('**/katex.min.js', async route => { await waitForMath; await route.continue(); });
+    await page.goto(viewUrl, { waitUntil: 'domcontentloaded' });
     await page.locator('#article h1').waitFor();
+    assert.equal(await page.locator('#article .katex').count(), 0);
+    releaseMath();
+    await page.locator('#article .katex').first().waitFor();
     assert.equal(await page.locator('#article .katex').count(), 2);
     assert.equal(await page.locator('#article iframe').count(), 0);
     await page.locator('#article summary').click();
@@ -148,6 +178,7 @@ async function main() {
     await page.locator('#previewTab').click();
     await page.locator('#editPreview summary').click();
     await page.locator('#editPreview').getByText('折叠里的加粗').waitFor();
+    await page.locator('#editPreview .katex').first().waitFor();
     assert.equal(await page.locator('#editPreview .katex').count(), 2);
     assert.equal(await page.locator('body').getAttribute('data-compromised'), null);
     await page.locator('#writeTab').click();
@@ -156,27 +187,38 @@ async function main() {
     await page.goto(viewUrl);
     await page.locator('#article mark').waitFor();
     assert.equal(await page.locator('#article mark').textContent(), 'HTML');
+    await page.locator('#article .katex').first().waitFor();
     assert.equal(await page.locator('#article .katex').count(), 2);
     // Legacy Markdown records also acquire HTML support without conversion.
     const legacy = await api('POST', '/api/documents', { format: 'markdown', content: mixed }, 201);
     await page.goto(base + legacy.viewUrl);
     await page.locator('#article summary').waitFor();
+    const plain = await api('POST', '/api/documents', { content: '# 无公式\n\n<img src="/example.png" width="300" height="200">\n<img src="/another.png" width="300" height="200">' }, 201);
+    const plainRequests = [];
+    page.on('request', request => plainRequests.push(request.url()));
+    await page.goto(base + plain.viewUrl);
+    await page.locator('#article h1').waitFor();
+    assert.equal(await page.locator('#article img').nth(1).getAttribute('loading'), 'lazy');
+    assert.equal(await page.locator('#article img').nth(1).getAttribute('width'), '300');
+    assert.ok(!plainRequests.some(url => url.includes('/katex') || url.includes('/auto-render')));
     // A failed sanitizer load must never fall back to unsanitized innerHTML.
     await context.route('**/purify.min.js', route => route.abort());
     await page.goto(viewUrl);
     await page.locator('#article pre').waitFor();
     assert.equal(await page.locator('#article script,#article details').count(), 0);
     assert.equal(await page.locator('body').getAttribute('data-compromised'), null);
+    assert.equal(bodyRequests, 0);
     assert.deepEqual(errors, []);
     console.log('PASS: mixed Markdown + HTML + math in create/read/edit; details interaction; code fences; HTML-first and .htm uploads stay mixed; saved source unchanged; script filtering; sanitizer failure fallback.');
   }
   await api('DELETE', route, { key: created.key });
   await api('GET', route, undefined, 404);
+  assert.equal((await fetch(base + created.viewUrl)).status, 404);
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (browser) await browser.close();
   if (child && child.exitCode === null) { const stopped = once(child, 'exit'); child.kill(); await stopped; }
-  const resolved = path.resolve(runtime);
+  const resolved = path.resolve(runtimeRoot);
   if (path.dirname(resolved) === path.resolve(os.tmpdir()) && path.basename(resolved).startsWith('mk-html-test-')) fs.rmSync(resolved, { recursive: true, force: true });
 });

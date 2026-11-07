@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#070d18">
   <title>Lernicks 文档分享</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.css" integrity="sha384-vlBdW0r3AcZO/HboRPznQNowvexd3fY8qHOWkBi5q7KGgqJ+F48+DceybYmrVbmB" crossorigin="anonymous">
+  <link rel="stylesheet" href="/mk-assets/__MK_ASSET_VERSION__/katex.min.css">
   <style>
     :root{--bg:#070d18;--panel:#0e1c2e;--panel2:#10243a;--line:rgba(104,224,255,.19);--cyan:#68e0ff;--purple:#9b91ff;--green:#70efba;--gold:#ffd16f;--red:#ff788d;--text:#f1faff;--muted:#91a8b9}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font-family:"Microsoft YaHei",system-ui,sans-serif;background:radial-gradient(circle at 13% 0%,rgba(38,131,189,.23),transparent 34%),radial-gradient(circle at 89% 13%,rgba(101,75,205,.19),transparent 31%),var(--bg);overflow-x:hidden}
@@ -786,11 +786,11 @@ $$\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$"></textarea>
     <footer><span>mk.lernicks.cn · Markdown + LaTeX + HTML</span><span>公开链接不等于永久保存</span></footer>
   </div>
   <div id="toast" class="toast"></div>
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.js" integrity="sha384-AtrdNsnxl/75rvBneBVH7DtOvCxSVahR2zWqle1coBKd8DEmLoviqNeJSx64gNAs" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/contrib/auto-render.min.js" integrity="sha384-bjyGPfbij8/NDKJhSGZNP/khQVgtHUE5exjm4Ydllo42FwIgYsdLO2lXGmRBf5Mz" crossorigin="anonymous"></script>
-  <script src="/purify.min.js"></script>
-  <script src="/html-support.js"></script>
+  <script src="/mk-assets/__MK_ASSET_VERSION__/markdown-it.min.js"></script>
+  <script src="/mk-assets/__MK_ASSET_VERSION__/katex.min.js"></script>
+  <script src="/mk-assets/__MK_ASSET_VERSION__/auto-render.min.js"></script>
+  <script src="/mk-assets/__MK_ASSET_VERSION__/purify.min.js"></script>
+  <script src="/mk-assets/__MK_ASSET_VERSION__/html-support.js"></script>
   <script>
     const MAX_BYTES=1024*1024;
     const titleInput=document.getElementById('titleInput'),contentInput=document.getElementById('contentInput'),fileInput=document.getElementById('fileInput'),createButton=document.getElementById('createButton'),previewButton=document.getElementById('previewButton'),createPreview=document.getElementById('createPreview');
@@ -811,7 +811,7 @@ $$\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$"></textarea>
     async function copyText(value){try{await navigator.clipboard.writeText(value)}catch(_){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}toast('已复制')}
     function copyField(id){copyText(document.getElementById(id).value)}
     function escapeHtml(value){return String(value).replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}
-    function renderCreatePreview(){const content=contentInput.value;createPreview.classList.remove('html-preview');if(typeof window.markdownit!=='function'){createPreview.textContent=content;return}const mathBlocks=[];const protectedContent=String(content).replace(/\$\$([\s\S]*?)\$\$/g,(_,formula)=>'\n\nMKDOCMATHBLOCK'+(mathBlocks.push(formula)-1)+'END\n\n');const md=window.markdownit({html:true,breaks:true,linkify:true,typographer:true});const rendered=md.render(protectedContent).replace(/<p>MKDOCMATHBLOCK(\d+)END<\/p>/g,(_,index)=>'<div class="math-block">$$'+escapeHtml(mathBlocks[Number(index)]||'')+'$$</div>');if(!MkHtml.insertMarkdownHtml(createPreview,rendered)){createPreview.textContent=content;return}if(typeof window.renderMathInElement==='function')window.renderMathInElement(createPreview,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false,strict:'warn',trust:false})}
+    function renderCreatePreview(){const content=contentInput.value;createPreview.classList.remove('html-preview');if(typeof window.markdownit!=='function'||!window.MkHtml){createPreview.textContent=content;return}const mathBlocks=[];const protectedContent=String(content).replace(/\$\$([\s\S]*?)\$\$/g,(_,formula)=>'\n\nMKDOCMATHBLOCK'+(mathBlocks.push(formula)-1)+'END\n\n');const md=window.markdownit({html:true,breaks:true,linkify:true,typographer:true});const rendered=md.render(protectedContent).replace(/<p>MKDOCMATHBLOCK(\d+)END<\/p>/g,(_,index)=>'<div class="math-block">$$'+escapeHtml(mathBlocks[Number(index)]||'')+'$$</div>');if(!MkHtml.insertMarkdownHtml(createPreview,rendered)){createPreview.textContent=content;return}if(typeof window.renderMathInElement==='function')window.renderMathInElement(createPreview,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false,strict:'warn',trust:false})}
     function resetForm(){clearTimeout(previewTimer);titleInput.value='';contentInput.value='';fileInput.value='';createPreview.classList.remove('html-preview');document.getElementById('result').classList.remove('show');if(previewOpen){previewOpen=false;previewButton.classList.remove('active');previewButton.textContent='预览效果';createPreview.classList.remove('show');createPreview.innerHTML=''}updateCounter();window.scrollTo({top:0,behavior:'smooth'})}
     async function loadStatus(){try{const response=await fetch('/api/status',{cache:'no-store'});const data=await response.json();if(!data.ok)return;const percent=Math.min(100,data.usedBytes/data.maxBytes*100);document.getElementById('capacityBar').style.width=percent+'%';document.getElementById('capacityText').textContent=formatBytes(data.usedBytes)+' / '+formatBytes(data.maxBytes);document.getElementById('capacityNote').textContent=`已保存 ${data.documentCount} 份文档；达到上限后自动清理最早文档。`}catch(_){document.getElementById('capacityText').textContent='暂时无法读取'}}
     updateCounter();loadStatus();

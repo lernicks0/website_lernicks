@@ -1,4 +1,3 @@
-/* lernicks-performance */ require('../site-performance/static.cjs').install(__dirname, 'mk');
 // Lernicks Markdown / LaTeX / HTML 文档分享站
 // 纯 Node.js 实现，不需要在服务器安装新的 npm 软件包。
 
@@ -15,6 +14,35 @@ const DOCUMENT_PAGE = path.join(ROOT_DIR, 'document.html');
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 const DOCUMENT_DIR = path.join(ROOT_DIR, 'documents');
 const META_FILE = path.join(DATA_DIR, 'documents.json');
+
+const VENDOR_DIR = path.join(ROOT_DIR, 'vendor');
+const DOCUMENT_DATA_MARKER = '<!-- MK_DOCUMENT_DATA -->';
+const ASSET_PREFIX_MARKER = '/mk-assets/__MK_ASSET_VERSION__/';
+const ASSET_TYPES = {
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf'
+};
+const readerAssets = new Map();
+for (const name of ['html-support.js', 'purify.min.js']) {
+  readerAssets.set(name, fs.readFileSync(path.join(ROOT_DIR, name)));
+}
+for (const name of ['markdown-it.min.js', 'katex.min.js', 'auto-render.min.js', 'katex.min.css']) {
+  readerAssets.set(name, fs.readFileSync(path.join(VENDOR_DIR, name)));
+}
+for (const name of fs.readdirSync(path.join(VENDOR_DIR, 'fonts')).sort()) {
+  if (/^KaTeX_[\w-]+\.(woff2?|ttf)$/.test(name)) {
+    readerAssets.set('fonts/' + name, fs.readFileSync(path.join(VENDOR_DIR, 'fonts', name)));
+  }
+}
+// The CSS uses relative font URLs. Version the directory together with its files.
+const assetHash = crypto.createHash('sha256');
+for (const [name, body] of readerAssets) {
+  assetHash.update(name + '\0' + body.length + '\0').update(body);
+}
+const assetPrefix = '/mk-assets/' + assetHash.digest('hex').slice(0, 20) + '/';
 
 const MB = 1024 * 1024;
 const MAX_DOCUMENT_BYTES = positiveNumber(process.env.MK_MAX_DOCUMENT_MB, 1) * MB;
@@ -176,14 +204,29 @@ function sendText(res, status, text, extraHeaders = {}) {
   res.end(body);
 }
 
-function serveHtml(req, res, file) {
-  fs.readFile(file, (error, data) => {
+function serveHtml(req, res, file, documentData) {
+  fs.readFile(file, 'utf8', (error, template) => {
     if (error) { sendText(res, 500, '页面读取失败'); return; }
-    res.writeHead(200, {
+    let html = template.replaceAll(ASSET_PREFIX_MARKER, assetPrefix);
+    if (documentData) {
+      // Script data is inert. Escape '<' so user text cannot terminate the element.
+      const json = JSON.stringify(documentData).replace(/</g, '\\u003c');
+      html = html.replace(DOCUMENT_DATA_MARKER, () => '<script type="application/json" id="mk-document">' + json + '</script>');
+    }
+    const data = Buffer.from(html);
+    const headers = {
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': data.length,
-      'Cache-Control': 'no-cache'
-    });
+      'Cache-Control': documentData ? 'private, no-store' : 'no-cache'
+    };
+    if (!documentData) {
+      headers.ETag = 'W/"' + crypto.createHash('sha256').update(data).digest('hex').slice(0, 20) + '"';
+      if ((req.headers['if-none-match'] || '').split(',').some(tag => tag.trim() === headers.ETag || tag.trim() === '*')) {
+        res.writeHead(304, headers);
+        res.end();
+        return;
+      }
+    }
+    res.writeHead(200, { ...headers, 'Content-Length': data.length });
     if (req.method === 'HEAD') res.end();
     else res.end(data);
   });
@@ -398,11 +441,20 @@ const server = http.createServer((req, res) => {
     && /^\/d\/[a-f0-9]{16}\/?$/.test(url.pathname);
   securityHeaders(res, isPublicDocumentView);
 
-  if ((req.method === 'GET' || req.method === 'HEAD') && ['/html-support.js', '/purify.min.js'].includes(url.pathname)) {
-    const body = fs.readFileSync(path.join(ROOT_DIR, url.pathname.slice(1)));
-    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Content-Length': body.length, 'Cache-Control': 'no-cache' });
-    res.end(req.method === 'HEAD' ? undefined : body);
-    return;
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    const versioned = url.pathname.startsWith(assetPrefix);
+    const assetName = versioned ? url.pathname.slice(assetPrefix.length) : url.pathname.slice(1);
+    if (versioned || assetName === 'html-support.js' || assetName === 'purify.min.js') {
+      const body = readerAssets.get(assetName);
+      if (!body) { sendText(res, 404, 'Not Found'); return; }
+      res.writeHead(200, {
+        'Content-Type': ASSET_TYPES[path.extname(assetName)],
+        'Content-Length': body.length,
+        'Cache-Control': versioned ? 'public, max-age=31536000, immutable' : 'no-cache'
+      });
+      res.end(req.method === 'HEAD' ? undefined : body);
+      return;
+    }
   }
 
   if ((req.method === 'GET' || req.method === 'HEAD') && (url.pathname === '/' || url.pathname === '/index.html')) {
@@ -414,7 +466,10 @@ const server = http.createServer((req, res) => {
   if ((req.method === 'GET' || req.method === 'HEAD') && pageMatch) {
     const record = documents.find(item => item.id === pageMatch[1]);
     if (!record) { sendText(res, 404, '文档不存在或已被自动清理'); return; }
-    serveHtml(req, res, DOCUMENT_PAGE);
+    let content;
+    try { content = fs.readFileSync(documentPath(record.id), 'utf8'); }
+    catch (_) { sendText(res, 404, '文档文件不存在'); return; }
+    serveHtml(req, res, DOCUMENT_PAGE, publicDocument(record, content).document);
     return;
   }
 

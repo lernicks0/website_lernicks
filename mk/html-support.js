@@ -10,7 +10,7 @@
     return ['html', 'mixed', 'markdown', 'latex'].includes(format) ? format : detectFormat(content);
   }
 
-  function insertMarkdownHtml(target, rendered) {
+  function insertMarkdownHtml(target, rendered, deferImages = false) {
     if (!root.DOMPurify || !root.DOMPurify.isSupported) return false;
     const clean = root.DOMPurify.sanitize(rendered, {
       USE_PROFILES: { html: true },
@@ -21,6 +21,13 @@
     for (const link of clean.querySelectorAll('a[href]')) {
       link.setAttribute('target', '_blank');
       link.setAttribute('rel', 'noopener noreferrer');
+    }
+    if (deferImages) {
+      const images = Array.from(clean.querySelectorAll('img[src], img[srcset]'));
+      for (const image of images.slice(1)) {
+        if (!image.hasAttribute('loading')) image.loading = 'lazy';
+        if (!image.hasAttribute('decoding')) image.decoding = 'async';
+      }
     }
     target.replaceChildren(clean);
     return true;
