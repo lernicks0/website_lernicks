@@ -45,18 +45,18 @@
     } catch(e) { if(current === generation) root.innerHTML = '<p role="alert">' + escapeHtml(e.message) + '</p>'; }
   }
   function gate(root, slug, m, secret, current){
-    root.innerHTML = `<div class="gate-wrap"><div class="gate-card"><div class="wax-seal">🔒</div><h3>${escapeHtml(slug)}</h3><p>${m.encrypted ? '端到端加密便签' : '受保护的便签'}</p>${m.question ? `<p class="security-question">${escapeHtml(m.question)}</p>` : ''}${m.hasPassword ? `<label for="pwInput">${m.question ? '答案（严格区分大小写和空格）' : '访问密码'}</label><input type="password" id="pwInput" autocomplete="off" placeholder="${m.question ? '输入答案' : '输入密码'}" maxlength="200">` : ''}${m.encrypted && !secret ? '<label for="linkKey">请粘贴完整加密分享链接或链接密钥</label><input id="linkKey" type="password" autocomplete="off">' : ''}<p class="burn-warning">${m.burnAfterRead ? '阅后即焚：点击阅读后立即从服务器删除。输错密码、答案或链接密钥同样会销毁。关闭或刷新后无法恢复。' : '密码、答案和密钥仅在本页面内存中使用。'}</p><p id="pwErr" class="security-error" role="alert"></p><button class="go-btn" id="pwGo">${m.burnAfterRead ? '阅读并销毁' : '解锁阅读'}</button></div></div>`;
+    root.innerHTML = `<div class="gate-wrap"><div class="gate-card"><div class="wax-seal">🔒</div><h3>${escapeHtml(slug)}</h3><p>${m.encrypted ? '端到端加密便签' : '受保护的便签'}</p>${m.question ? `<p class="security-question">${escapeHtml(m.question)}</p>` : ''}${m.hasPassword ? `<label for="pwInput">${m.question ? '答案（严格区分大小写和空格）' : '访问密码'}</label><input type="password" id="pwInput" autocomplete="off" placeholder="${m.question ? '输入答案' : '输入密码'}" maxlength="200">` : ''}${m.encrypted && !secret ? '<label for="linkKey">口述口令、完整加密链接或链接密钥</label><input id="linkKey" type="password" autocomplete="off" maxlength="2048">' : ''}<p class="burn-warning">${m.burnAfterRead ? '阅后即焚：点击阅读后立即从服务器删除。输错密码、答案或口令同样会销毁。关闭或刷新后无法恢复。' : '密码、答案和密钥仅在本页面内存中使用。'}</p><p id="pwErr" class="security-error" role="alert"></p><button class="go-btn" id="pwGo">${m.burnAfterRead ? '阅读并销毁' : '解锁阅读'}</button></div></div>`;
     const button = document.getElementById('pwGo'), input = document.getElementById('pwInput'), error = document.getElementById('pwErr');
+    const keyInput = document.getElementById('linkKey');
     button.onclick = async () => {
       button.disabled = true; error.textContent = '';
       try {
         let key = secret, keys = null;
         const password = input?.value || '';
         if(m.encrypted){
-          key = key || document.getElementById('linkKey')?.value.trim();
+          key = key || keyInput?.value.trim();
           if(key?.includes('#')) key = new URLSearchParams(key.split('?').slice(1).join('?')).get('k');
-          // Missing/malformed key is a form error, not a password attempt sent to the server.
-          if(!key || !/^[A-Za-z0-9_-]{43}$/.test(key)) throw Error('请使用包含密钥的完整加密分享链接。');
+          if(!key || !/^[A-Za-z0-9_-]{43}$/.test(key)) key = await NoteCrypto.spokenSecret(key || '');
           keys = await NoteCrypto.derive(key, password, m.crypto.salt);
         }
         const b = { confirmRead:true, revision:m.revision };
@@ -73,14 +73,47 @@
         editor(root, slug, { ...r.data, content, secret:key, keys, password, token:r.data.token || null }, current);
       } catch(e) { if(current === generation && root.isConnected) { error.textContent = e.message; button.disabled = false; } }
     };
-    if(input) { input.onkeydown = e => { if(e.key === 'Enter' && !button.disabled) button.click(); }; input.focus(); }
+    for (const field of [keyInput, input]) {
+      if (field) field.onkeydown = event => { if (event.key === 'Enter' && !button.disabled) button.click(); };
+    }
+    (keyInput || input)?.focus();
   }
   function editor(root, slug, state, current){
     const burned = !!state.destroyed;
-    root.innerHTML = `<div class="note-wrap"><div class="note-bar"><div class="postmark"><span class="dot"></span>${burned ? '一次性阅读' : escapeHtml(slug)}</div><div class="note-actions">${burned ? '' : '<button class="icon-btn" id="copyLink">🔗 复制链接</button><button class="icon-btn" id="lockBtn">保护设置</button><button class="icon-btn seal" id="destroyBtn">销毁</button>'}</div></div><div class="paper-page"><textarea id="editorArea" maxlength="500000" aria-label="便签正文" placeholder="开始写下你想说的话…" ${burned ? 'readonly' : ''}>${escapeHtml(state.content)}</textarea><div class="save-status" id="saveStatus" role="status">${burned ? '服务器副本已销毁 · 仅此页可读' : state.exists ? '已保存' : '尚未保存 · 请先选择保护方式'}</div></div>${burned ? '<p class="security-summary">便签和访问凭据已删除，站内不保留阅读记录，当前地址记录已替换。关闭或刷新后无法再次读取。</p>' : `<p id="securitySummary" class="security-summary"></p><div class="settings-panel ${state.exists ? '' : 'open'}" id="settingsPanel"><label class="security-check"><input id="burnAfterRead" type="checkbox" ${state.burnAfterRead ? 'checked' : ''}><span>阅后即焚：下一个人阅读即销毁</span></label><p class="settings-note burn-warning">读者提交错误密码或答案也会销毁。当前编辑页不触发，阅读后只保留读者已经打开的页面。</p><label class="security-check"><input id="e2ee" type="checkbox" ${state.encrypted ? 'checked' : ''}><span>端到端加密（新便签默认开启）</span></label><p class="settings-note">正文在浏览器内加密。请复制并保存完整分享链接；密钥、密码或答案丢失后无法恢复。自定义问题公开可见，请使用难猜的答案。</p><div class="security-fields"><label for="protectionMode">访问验证</label><select id="protectionMode"><option value="none">无需密码</option><option value="password">密码</option><option value="question">自定义问题</option></select><label for="customQuestion">自定义问题（选择问题验证时必填）</label><input id="customQuestion" type="text" maxlength="200" value="${escapeHtml(state.question)}" placeholder="例如：约定的那句话是什么？"><label for="newPw">密码 / 问题答案</label><input id="newPw" type="password" autocomplete="new-password" maxlength="200" placeholder="${state.hasPassword ? '留空保留现有密码或答案' : '设置密码或答案'}"><button class="apply" id="saveSettings">${state.exists ? '保存保护设置' : '保存并创建便签'}</button></div><p id="settingsError" class="security-error" role="alert"></p><p class="settings-note">阅后即焚只保留当前打开页面的正文；无法撤回对方的截图或复制内容，也无法代删浏览器及第三方代理日志。</p></div>`}</div>`;
+    root.innerHTML = `<div class="note-wrap"><div class="note-bar"><div class="postmark"><span class="dot"></span>${burned ? '一次性阅读' : escapeHtml(slug)}</div><div class="note-actions">${burned ? '' : '<button class="icon-btn" id="copyLink">🔗 复制链接</button><button class="icon-btn" id="lockBtn">保护设置</button><button class="icon-btn seal" id="destroyBtn">销毁</button>'}</div></div><div class="paper-page"><textarea id="editorArea" maxlength="500000" aria-label="便签正文" placeholder="开始写下你想说的话…" ${burned ? 'readonly' : ''}>${escapeHtml(state.content)}</textarea><div class="save-status" id="saveStatus" role="status">${burned ? '服务器副本已销毁 · 仅此页可读' : state.exists ? '已保存' : '尚未保存 · 请先选择保护方式'}</div></div>${burned ? '<p class="security-summary">便签和访问凭据已删除，站内不保留阅读记录，当前地址记录已替换。关闭或刷新后无法再次读取。</p>' : `<p id="securitySummary" class="security-summary"></p><p id="spokenShareResult" class="security-summary" hidden></p><div class="settings-panel ${state.exists ? '' : 'open'}" id="settingsPanel"><label class="security-check"><input id="burnAfterRead" type="checkbox" ${state.burnAfterRead ? 'checked' : ''}><span>阅后即焚：下一个人阅读即销毁</span></label><p class="settings-note burn-warning">读者提交错误密码或答案也会销毁。当前编辑页不触发，阅读后只保留读者已经打开的页面。</p><label class="security-check"><input id="e2ee" type="checkbox" ${state.encrypted ? 'checked' : ''}><span>端到端加密（新便签默认开启）</span></label>${state.exists ? '' : '<label class="security-check"><input id="spokenShare" type="checkbox"><span>生成口述口令（用代号和口令打开）</span></label>'}<p class="settings-note">正文在浏览器内加密。请复制并保存完整分享链接；密钥、密码或答案丢失后无法恢复。自定义问题公开可见，请使用难猜的答案。</p><div class="security-fields"><label for="protectionMode">访问验证</label><select id="protectionMode"><option value="none">无需密码</option><option value="password">密码</option><option value="question">自定义问题</option></select><label for="customQuestion">自定义问题（选择问题验证时必填）</label><input id="customQuestion" type="text" maxlength="200" value="${escapeHtml(state.question)}" placeholder="例如：约定的那句话是什么？"><label for="newPw">密码 / 问题答案</label><input id="newPw" type="password" autocomplete="new-password" maxlength="200" placeholder="${state.hasPassword ? '留空保留现有密码或答案' : '设置密码或答案'}"><button class="apply" id="saveSettings">${state.exists ? '保存保护设置' : '保存并创建便签'}</button></div><p id="settingsError" class="security-error" role="alert"></p><p class="settings-note">阅后即焚只保留当前打开页面的正文；无法撤回对方的截图或复制内容，也无法代删浏览器及第三方代理日志。</p></div>`}</div>`;
     const area = document.getElementById('editorArea'), status = document.getElementById('saveStatus');
+    const spokenOption = document.getElementById('spokenShare');
+    const spokenResult = document.getElementById('spokenShareResult');
+    const encryption = document.getElementById('e2ee');
+    let draftSpoken = '';
     let timer, watch, stopped = false, dirty = false, chain = Promise.resolve(), settingsBusy = false;
-    const stop = () => { stopped = true; clearTimeout(timer); clearInterval(watch); state.secret = null; state.keys = null; state.password = ''; state.content = ''; area.value = ''; };
+    function showSpokenPhrase(phrase, saved) {
+      if (!spokenResult) return;
+      spokenResult.hidden = !phrase;
+      spokenResult.textContent = phrase ? '口述口令：' + phrase + (saved ? '。请在离开页面前记下。' : '。保存便签后生效。') : '';
+    }
+    function updateSpokenOption() {
+      if (!spokenOption || state.exists) return;
+      spokenOption.disabled = !encryption.checked;
+      if (encryption.checked && spokenOption.checked) {
+        if (!draftSpoken) draftSpoken = NoteCrypto.randomSpokenPhrase();
+        showSpokenPhrase(draftSpoken, false);
+      } else {
+        showSpokenPhrase('', false);
+      }
+    }
+    const stop = () => {
+      stopped = true;
+      clearTimeout(timer);
+      clearInterval(watch);
+      state.secret = null;
+      state.keys = null;
+      state.password = '';
+      state.content = '';
+      draftSpoken = '';
+      showSpokenPhrase('', false);
+      area.value = '';
+    };
     dispose = stop;
     // BFCache must not retain a consumed note or its keys when navigating away.
     const hide = () => { stop(); }; window.addEventListener('pagehide', hide, {once:true});
@@ -90,6 +123,7 @@
     mode.value = state.hasPassword ? state.question ? 'question' : 'password' : 'none';
     const summary = () => { if(!state.exists) { document.getElementById('securitySummary').textContent = '尚未创建 · 选择保护方式后保存'; return; } document.getElementById('securitySummary').textContent = [state.burnAfterRead ? '阅后即焚已开启（输错即销毁）' : '普通便签', state.encrypted ? '端到端加密' : '服务器保存正文', state.hasPassword ? state.question ? '问题验证' : '密码验证' : '无需密码', state.encrypted ? '请点击“复制链接”保存完整链接；仅有代号无法解密' : ''].filter(Boolean).join(' · '); };
     summary();
+    updateSpokenOption();
     watch = setInterval(async () => {
       if(stopped || !state.exists || !state.burnAfterRead || settingsBusy || current !== generation) return;
       try {
@@ -104,7 +138,9 @@
       status.textContent = '保存中…';
       const next = config || { encrypted:!!state.encrypted, burnAfterRead:!!state.burnAfterRead, hasPassword:!!state.hasPassword, question:state.question || '', password:state.password || '', secret:state.secret, keys:state.keys };
       const b = { revision:state.revision, token:state.token, create:!state.exists, burnAfterRead:next.burnAfterRead, encrypted:next.encrypted, question:next.question };
+      const spokenPhrase = !state.exists && next.encrypted && spokenOption?.checked ? draftSpoken : '';
       if(next.encrypted){
+        if (spokenPhrase) next.secret = await NoteCrypto.spokenSecret(spokenPhrase);
         if(!next.secret) next.secret = NoteCrypto.random(32);
         if(!next.keys || config) next.keys = await NoteCrypto.derive(next.secret, next.password, NoteCrypto.random(16));
         b.envelope = await NoteCrypto.encrypt(text, next.keys, slug); b.accessKey = next.keys.accessKey; b.hasPassword = next.hasPassword;
@@ -118,13 +154,19 @@
       }
       if(current !== generation) return false;
       Object.assign(state, next, r.data, { content:text });
-      if(!state.encrypted) { state.secret = null; state.keys = null; }
+      if(!state.encrypted) { state.secret = null; state.keys = null; showSpokenPhrase('', false); }
+      if (spokenPhrase) showSpokenPhrase(spokenPhrase, true);
+      spokenOption?.closest('label').remove();
+      draftSpoken = '';
       status.textContent = '已保存 · ' + new Date().toLocaleTimeString(); summary();
       return true;
     }
     function enqueue(fn){ const next = chain.then(fn); chain = next.catch(e => { if(current === generation) markError(e); }); return next; }
     area.oninput = () => { clearTimeout(timer); status.textContent = !state.exists || dirty ? '待保存 · 请点击保存保护设置' : '输入中…'; if(state.exists && !dirty && !stopped) timer = setTimeout(() => enqueue(() => save()).catch(()=>{}), 700); };
-    panel.addEventListener('input', () => { dirty = true; clearTimeout(timer); status.textContent = '保护设置待保存'; });
+    panel.addEventListener('input', event => {
+      dirty = true; clearTimeout(timer); status.textContent = '保护设置待保存';
+      if (event.target === spokenOption || event.target === encryption) updateSpokenOption();
+    });
     document.getElementById('lockBtn').onclick = () => panel.classList.toggle('open');
     document.getElementById('saveSettings').onclick = async () => {
       if(settingsBusy || stopped) return;
@@ -137,7 +179,7 @@
       settingsBusy = true; button.disabled = true; area.readOnly = true; clearTimeout(timer);
       for(const el of panel.querySelectorAll('input,select')) el.disabled = true;
       try { const ok = await enqueue(() => save(config)); if(ok) { dirty = false; document.getElementById('newPw').value = ''; button.textContent = '保存保护设置'; panel.classList.remove('open'); } }
-      catch(_) {} finally { settingsBusy = false; if(current === generation) { button.disabled = stopped; area.readOnly = stopped; for(const el of panel.querySelectorAll('input,select')) el.disabled = false; } }
+      catch(_) {} finally { settingsBusy = false; if(current === generation) { button.disabled = stopped; area.readOnly = stopped; for(const el of panel.querySelectorAll('input,select')) el.disabled = false; updateSpokenOption(); } }
     };
     document.getElementById('copyLink').onclick = async e => {
       const button = e.currentTarget;
