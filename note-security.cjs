@@ -52,7 +52,7 @@ function clientIp(req) {
   // Missing visitor IP must not put all visitors behind the same edge in one bucket.
   return normalizeIp(req.headers['cf-connecting-ip']);
 }
-const validEnvelope = e => e && e.v === 1 && e.kdf === 'PBKDF2-SHA256' && e.iterations === 600000 &&
+const validEnvelope = e => e && (e.v === 1 || e.v === 2) && e.kdf === 'PBKDF2-SHA256' && e.iterations === 600000 &&
   typeof e.salt === 'string' && /^[A-Za-z0-9_-]{22}$/.test(e.salt) &&
   typeof e.iv === 'string' && /^[A-Za-z0-9_-]{16}$/.test(e.iv) &&
   typeof e.ciphertext === 'string' && e.ciphertext.length >= 22 && e.ciphertext.length <= 2700000 && /^[A-Za-z0-9_-]+$/.test(e.ciphertext);
@@ -115,7 +115,7 @@ function install(app, { dataDir, express = require('express'), bcrypt = require(
   function meta(n) {
     if (!n) return { exists: false, hasPassword: false, encrypted: false, burnAfterRead: false };
     return { exists: true, hasPassword: !!n.hasPassword, question: n.question || '', encrypted: !!n.encrypted,
-      burnAfterRead: !!n.burnAfterRead, revision: revision(n), crypto: n.encrypted ? { v: 1, kdf: n.envelope.kdf, iterations: n.envelope.iterations, salt: n.envelope.salt } : null };
+      burnAfterRead: !!n.burnAfterRead, revision: revision(n), crypto: n.encrypted ? { v: n.envelope.v, kdf: n.envelope.kdf, iterations: n.envelope.iterations, salt: n.envelope.salt } : null };
   }
   function payload(n) { return { ...meta(n), content: n.encrypted ? undefined : n.content, envelope: n.encrypted ? n.envelope : undefined }; }
   const router = express.Router();
@@ -147,6 +147,8 @@ function install(app, { dataDir, express = require('express'), bcrypt = require(
     // Old clients must never accidentally consume a burn note via auto-unlock.
     if (n.burnAfterRead && (req.path.endsWith('/unlock') || b.confirmRead !== true)) return res.status(409).json({ error: 'CONFIRM_READ_REQUIRED' });
     if (b.revision !== undefined && b.revision !== revision(n)) return res.status(409).json({ error: 'CONFLICT' });
+    // A stale client deriving a link key must not consume a password-only note.
+    if (n.encrypted && n.envelope.v === 2 && b.cryptoVersion !== 2) return res.status(409).json({ error: 'CRYPTO_VERSION_REQUIRED' });
     let attemptKey, attempt;
     if (!n.burnAfterRead && (n.hasPassword || n.encrypted)) {
       const ip = clientIp(req);
@@ -186,9 +188,9 @@ function install(app, { dataDir, express = require('express'), bcrypt = require(
     if (b.encrypted !== undefined && typeof b.encrypted !== 'boolean') return res.status(400).json({ error: 'INVALID_OPTIONS' });
     n.encrypted = b.encrypted === undefined ? !!n.encrypted : b.encrypted;
     if (n.encrypted) {
-      if (!validEnvelope(b.envelope) || typeof b.accessKey !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(b.accessKey) || typeof b.hasPassword !== 'boolean') return res.status(400).json({ error: 'INVALID_ENCRYPTED_NOTE' });
+      if (!validEnvelope(b.envelope) || typeof b.accessKey !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(b.accessKey) || typeof b.hasPassword !== 'boolean' || (b.envelope.v === 2 && !b.hasPassword)) return res.status(400).json({ error: 'INVALID_ENCRYPTED_NOTE' });
       if (own(b, 'content') || own(b, 'setPassword')) return res.status(400).json({ error: 'PLAINTEXT_FORBIDDEN' });
-      n.envelope = { v: 1, kdf: 'PBKDF2-SHA256', iterations: 600000, salt: b.envelope.salt, iv: b.envelope.iv, ciphertext: b.envelope.ciphertext };
+      n.envelope = { v: b.envelope.v, kdf: 'PBKDF2-SHA256', iterations: 600000, salt: b.envelope.salt, iv: b.envelope.iv, ciphertext: b.envelope.ciphertext };
       n.accessHash = hash(b.accessKey); n.hasPassword = b.hasPassword;
       delete n.content; delete n.passwordHash;
     } else {

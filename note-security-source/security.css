@@ -1,5 +1,6 @@
 .security-check{display:flex;align-items:flex-start;gap:10px;margin:16px 0 8px;line-height:1.6;cursor:pointer}
 .security-check input{flex:none;width:17px;height:17px;margin:3px 0;accent-color:var(--teal)}
+.security-check[hidden]{display:none}
 .security-fields{display:grid;gap:10px;max-width:580px;margin-top:22px}
 .security-fields label{font-size:13px;line-height:1.7}
 .security-fields :is(input,select){box-sizing:border-box;min-width:0;width:100%;padding:11px 12px;border:1px solid #aaa;border-radius:5px;font:inherit;background:var(--paper);color:var(--text-dark)}
