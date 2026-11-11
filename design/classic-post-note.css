@@ -1,0 +1,68 @@
+html[data-design="classic"][data-astra-site="note"]{--muted:#a8b7ce;--post-border:#ffffff24;--post-gold:#e7b98f;--post-rule:#c9bd9c}
+.note-slug-row{display:flex;gap:10px;min-width:0}
+.note-slug-row .slug-input{min-width:0;flex:1}
+.note-card-caption{display:none}
+.note-slug-error{margin:10px 0 0;font-size:13px;color:var(--seal);line-height:1.5}
+.note-slug-error:empty{display:none}
+#randomBtn{padding:8px 12px;border-radius:4px;background:#e2d5b9;color:#4c4433;white-space:nowrap;font-size:13px}
+html[data-design="classic"] .topnav{width:min(1080px,calc(100% - 64px));min-height:84px;padding:16px 0;border-bottom:1px solid var(--post-border);flex-wrap:wrap;gap:10px;letter-spacing:0}
+html[data-design="classic"] .topnav .brand{display:inline-flex;align-items:center;gap:8px;min-height:38px;font-size:15px;letter-spacing:.06em}
+html[data-design="classic"] .topnav nav{min-width:0;max-width:100%;gap:8px 14px;flex-wrap:wrap;justify-content:flex-start}
+html[data-design="classic"] .topnav nav a{margin:0;display:inline-flex;align-items:center;min-height:38px;color:var(--muted);white-space:nowrap}
+html[data-design="classic"] .topnav nav a:is(:hover,[aria-current="page"]){color:var(--text-light);text-decoration:underline;text-underline-offset:4px}
+html[data-design="classic"] .design-switch{color:var(--muted)}
+html[data-design="classic"] .design-switch select{min-height:38px;border-radius:4px}
+html[data-design="classic"] .home-wrap{flex:0 0 auto;width:min(100%,660px);justify-content:flex-start;padding:clamp(50px,10vh,104px) 18px 60px}
+html[data-design="classic"] .telegram-title{font-size:clamp(29px,5vw,48px);line-height:1.24;margin:0;text-wrap:balance}
+html[data-design="classic"] .telegram-sub{margin:12px 0 28px;font-size:14px;line-height:1.75;text-wrap:pretty}
+html[data-design="classic"] .telegram-card{width:min(100%,480px);padding:31px 28px 25px;border-radius:3px}
+html[data-design="classic"] .perforation{height:9px;background:radial-gradient(circle at 8px 0,var(--ink) 5px,transparent 5.6px) 0 0/16px 9px repeat-x}
+html[data-design="classic"] .note-card-caption{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:0 0 12px;border-bottom:1px dashed var(--post-rule);color:#a13d33;font:700 11px var(--font-mono);letter-spacing:.09em}
+html[data-design="classic"] .note-card-caption strong{font:650 16px var(--font-body);color:var(--text-dark);letter-spacing:.06em}
+html[data-design="classic"] .telegram-card label{margin:18px 0 7px;font:600 13px var(--font-body);letter-spacing:0}
+html[data-design="classic"] .slug-input{min-height:44px;font-size:16px;border-width:1px}
+html[data-design="classic"] #randomBtn:hover{background:#d8c9aa}
+html[data-design="classic"] :is(.go-btn,.note-check-card button){min-height:44px;border-radius:4px;letter-spacing:.07em;font:600 14px var(--font-body)}
+html[data-design="classic"] .telegram-card .go-btn{margin-top:18px}
+html[data-design="classic"] .home-hint{margin:17px 0 0;font-size:13px;line-height:1.7;color:var(--muted)}
+html[data-design="classic"] .note-check-home-entry{display:flex;align-items:center;min-height:40px;margin:10px 0 0;color:var(--post-gold);text-underline-offset:4px}
+html[data-design="classic"] .note-wrap{padding:16px 0 44px}
+html[data-design="classic"] :is(.note-bar,.paper-page,.settings-panel,.security-summary){width:min(880px,calc(100% - 36px))}
+html[data-design="classic"] .note-bar{padding:8px 0 12px;gap:10px 14px}
+html[data-design="classic"] .postmark{min-width:0;max-width:100%;border-color:#ffffff55;border-radius:4px;overflow-wrap:anywhere}
+html[data-design="classic"] .postmark .dot{flex:none;background:#87bfad}
+html[data-design="classic"] .note-actions{flex-wrap:wrap;gap:8px}
+html[data-design="classic"] .icon-btn{border:1px solid var(--post-border);border-radius:4px;min-height:38px;padding:7px 12px}
+html[data-design="classic"] .paper-page{min-height:0;border-radius:3px;display:flex;flex-direction:column}
+html[data-design="classic"] .paper-page textarea{display:block;min-height:52vh;padding:24px clamp(18px,4vw,42px);font-size:16px;line-height:1.85}
+html[data-design="classic"] .paper-page:focus-within{outline:2px solid var(--post-gold);outline-offset:2px}
+html[data-design="classic"] .save-status{position:static;max-width:none;min-height:35px;padding:9px 0;margin:0 clamp(16px,4vw,40px);border-top:1px dashed var(--post-rule);color:#665942;text-align:right;overflow-wrap:anywhere}
+html[data-design="classic"] .security-summary{margin:12px 0 0}
+html[data-design="classic"] .settings-panel{padding:18px clamp(16px,4vw,26px);border:1px solid var(--post-border)}
+html[data-design="classic"] .settings-panel .burn-warning,html[data-design="classic"] .settings-panel .security-error{color:#f5a294}
+html[data-design="classic"] .settings-panel .apply{min-height:40px}
+html[data-design="classic"] .gate-wrap{padding-top:54px}
+html[data-design="classic"] :is(.gate-card,.fb-card,.note-check-card){border-radius:4px}
+html[data-design="classic"] .gate-card .go-btn{margin-top:6px}
+html[data-design="classic"] .gate-card .security-error{color:#a13d33}
+html[data-design="classic"] .note-check-wrap{margin:clamp(36px,8vh,72px) auto 50px}
+html[data-design="classic"] .note-check-card{box-shadow:0 18px 34px -22px #000c}
+html[data-design="classic"] .note-check-card button{background:var(--ink)}
+html[data-design="classic"] .note-check-card button:hover{background:var(--teal-dark)}
+html[data-design="classic"] .note-check-back,html[data-design="classic"] .gate-card a{text-decoration:underline;text-underline-offset:4px}
+html[data-design="classic"] #app :focus-visible{outline:2px solid var(--post-gold);outline-offset:3px}
+html[data-design="classic"] #app :is(.telegram-card,.gate-card,.fb-card,.note-check-card) :focus-visible{outline-color:var(--teal-dark)}
+html[data-design="classic"] #app .paper-page textarea:focus-visible{outline:none}
+@media(max-width:620px){
+  html[data-design="classic"] .topnav{width:calc(100% - 36px);padding:9px 0 11px;gap:4px 12px}
+  html[data-design="classic"] .topnav nav{width:100%;gap:5px 11px}
+  html[data-design="classic"] .topnav nav a{font-size:12px}
+  html[data-design="classic"] .design-switch{margin-left:auto}
+  html[data-design="classic"] .design-switch>span{display:none}
+  html[data-design="classic"] .design-switch select{min-width:68px;padding-right:17px}
+  html[data-design="classic"] .home-wrap{padding-top:44px}
+  html[data-design="classic"] .telegram-title{word-break:keep-all}
+  html[data-design="classic"] .telegram-card{padding:26px 17px 20px}
+  html[data-design="classic"] .paper-page textarea{min-height:40vh}
+}
+@media(prefers-reduced-motion:reduce){html[data-design="classic"] #app *{transition:none}}

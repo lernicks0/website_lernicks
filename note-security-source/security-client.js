@@ -23,12 +23,15 @@
   function forget(slug) { try { localStorage.removeItem('tg_note_pw_' + slug); sessionStorage.removeItem('tg_note_pw_' + slug); } catch (_) {} }
   function notice(root, message){ root.innerHTML = `<div class="gate-wrap"><div class="gate-card"><h3>便签已销毁</h3><p>${escapeHtml(message)}</p><a href="#/">返回首页</a></div></div>`; }
   function home(){
-    app.innerHTML = nav() + `<div class="home-wrap"><h1 class="telegram-title">写点什么，发给需要的人</h1><p class="telegram-sub">新建便签默认端到端加密，可设置密码、问题或阅后即焚。</p><div class="telegram-card"><div class="perforation"></div><label for="slugInput">笔记代号 · Note ID</label><div style="display:flex;gap:8px;min-width:0"><input class="slug-input" id="slugInput" placeholder="例如 mynote-2026" autocomplete="off" style="min-width:0;flex:1"><button id="randomBtn">🎲 随机</button></div><button class="go-btn" id="goBtn">打开 / 创建</button></div><p class="home-hint">设有密码或问题的新便签可用代号打开。使用链接密钥的便签请保存完整分享链接。</p></div>`;
+    app.innerHTML = nav() + `<main class="home-wrap"><h1 class="telegram-title">写点什么， 发给需要的人</h1><p class="telegram-sub">新建便签默认端到端加密，可设置密码、问题或阅后即焚。</p><div class="telegram-card"><div class="perforation" aria-hidden="true"></div><div class="note-card-caption" aria-hidden="true"><strong>便签入口</strong><span>NOTE ID</span></div><label for="slugInput">便签代号</label><div class="note-slug-row"><input class="slug-input" id="slugInput" placeholder="例如 mynote-2026" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="noteSlugError"><button id="randomBtn" type="button">随机代号</button></div><button class="go-btn" id="goBtn">打开或创建</button><p class="note-slug-error" id="noteSlugError" role="alert"></p></div><p class="home-hint">设了密码或问题？输入代号即可打开。使用链接密钥的便签需要完整分享链接。</p></main>`;
     const input = document.getElementById('slugInput');
-    const go = () => { const s = input.value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-_\u4e00-\u9fa5]/g,'').slice(0,50); if(s) location.hash = '#/n/' + encodeURIComponent(s); };
+    const error = document.getElementById('noteSlugError');
+    const clearError = () => { error.textContent = ''; input.removeAttribute('aria-invalid'); };
+    input.addEventListener('input', clearError);
+    const go = () => { const s = input.value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-_\u4e00-\u9fa5]/g,'').slice(0,50); if(s) location.hash = '#/n/' + encodeURIComponent(s); else { error.textContent = '请输入代号，或点击随机代号。'; input.setAttribute('aria-invalid', 'true'); input.focus(); } };
     document.getElementById('goBtn').onclick = go;
-    document.getElementById('randomBtn').onclick = () => { input.value = 'note-' + NoteCrypto.random(9); };
-    input.onkeydown = e => { if(e.key === 'Enter') go(); }; input.focus();
+    document.getElementById('randomBtn').onclick = () => { input.value = 'note-' + NoteCrypto.random(9); clearError(); };
+    input.onkeydown = e => { if(e.key === 'Enter' && !e.isComposing) go(); };
   }
   async function open(slug, secret, current){
     forget(slug);
