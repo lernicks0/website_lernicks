@@ -51,25 +51,25 @@ function replaceFile(file, content, stat) {
   }
 }
 
-async function install(mode) {
+async function install(mode, options = { sites, patch, marker, label: 'CLASSIC_TOOLS', backup: 'classic-tools' }) {
   assert.ok(mode === '--check' || mode === '--apply', 'Use --check or --apply');
   assert.equal(process.getuid(), 0, 'Run with sudo');
-  const pages = sites.map(site => {
+  const pages = options.sites.map(site => {
     const stat = fs.statSync(site.file);
     assert.ok(stat.isFile() && fs.realpathSync(site.file) === site.file, `Unexpected path ${site.file}`);
     const before = fs.readFileSync(site.file, 'utf8');
-    return { ...site, stat, before, after: patch(site.name, before) };
+    return { ...site, stat, before, after: options.patch(site.name, before) };
   });
   if (mode === '--check') {
-    console.log('CLASSIC_TOOLS_CHECK_SUCCESS pk sco goal');
+    console.log(`${options.label}_CHECK_SUCCESS ${pages.map(page => page.name).join(' ')}`);
     return;
   }
   const changed = pages.filter(page => page.before !== page.after);
   if (!changed.length) {
-    console.log('CLASSIC_TOOLS_ALREADY_INSTALLED');
+    console.log(`${options.label}_ALREADY_INSTALLED`);
     return;
   }
-  const backup = fs.mkdtempSync('/root/classic-tools-code-backup-');
+  const backup = fs.mkdtempSync(`/root/${options.backup}-code-backup-`);
   for (const page of changed) fs.copyFileSync(page.file, path.join(backup, `${page.name}.html`));
   const written = [];
   try {
@@ -83,7 +83,7 @@ async function install(mode) {
         headers: { host: `${page.name}.lernicks.cn`, 'x-forwarded-proto': 'https' },
         signal: AbortSignal.timeout(10000),
       });
-      assert.ok(response.ok && (await response.text()).includes(marker), `${page.name} failed origin verification`);
+      assert.ok(response.ok && (await response.text()).includes(options.marker), `${page.name} failed origin verification`);
     }));
   } catch (error) {
     for (const page of written.reverse()) {
@@ -92,10 +92,10 @@ async function install(mode) {
     }
     throw Error(`Install failed; backup=${backup}`, { cause: error });
   }
-  console.log(`CLASSIC_TOOLS_INSTALL_SUCCESS backup=${backup}`);
+  console.log(`${options.label}_INSTALL_SUCCESS backup=${backup}`);
 }
 
 if (require.main === module) {
   install(process.argv[2] || '--check').catch(error => { console.error(error); process.exitCode = 1; });
 }
-module.exports = { patch };
+module.exports = { patch, install, sites, replaceOne };
