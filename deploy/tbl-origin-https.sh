@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 domain=tbl.lernicks.cn
-webroot=/var/lib/letsencrypt
+webroot=/var/www/tbl-acme
 https_conf=/etc/nginx/conf.d/tbl-direct-https.conf
 hook=/etc/letsencrypt/renewal-hooks/deploy/tbl-nginx-reload
 mode=${1:---inspect}
@@ -62,7 +62,7 @@ rollback() {
 }
 trap rollback ERR INT TERM
 cat "$stage/http.conf" > "$live"
-install -d -m 755 "$webroot/.well-known/acme-challenge"
+install -d -m 755 "$webroot" "$webroot/.well-known" "$webroot/.well-known/acme-challenge"
 nginx -t
 systemctl reload nginx
 token="tbl-probe-$(openssl rand -hex 12)"

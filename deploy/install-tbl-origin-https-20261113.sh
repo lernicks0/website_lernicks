@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 domain=tbl.lernicks.cn
-webroot=/var/lib/letsencrypt
+webroot=/var/www/tbl-acme
 https_conf=/etc/nginx/conf.d/tbl-direct-https.conf
 hook=/etc/letsencrypt/renewal-hooks/deploy/tbl-nginx-reload
 mode=${1:---inspect}
@@ -63,7 +63,7 @@ function prepare(source){
  assert.equal((original.match(/\blisten\s+80\s*;/g)||[]).length,1,'Expected plain port 80');
  assert.equal((original.match(/\blisten\s+/g)||[]).length,1,'Unexpected additional listeners');
  assert.ok(/proxy_pass\s+http:\/\/127\.0\.0\.1:1148\s*;/.test(original),'Unexpected tbl upstream');
- const challenge='\n\n    # tbl-direct-acme-20261101\n    location ^~ /.well-known/acme-challenge/ {\n        root /var/lib/letsencrypt;\n        default_type text/plain;\n        try_files $uri =404;\n    }';
+ const challenge='\n\n    # tbl-direct-acme-20261101\n    location ^~ /.well-known/acme-challenge/ {\n        root /var/www/tbl-acme;\n        default_type text/plain;\n        try_files $uri =404;\n    }';
  const at=target.nameEnd;
  const http=source.slice(0,at)+challenge+source.slice(at);
  assert.equal(http.replace(challenge,''),source,'Unrelated HTTP configuration changed');
@@ -114,7 +114,7 @@ rollback() {
 }
 trap rollback ERR INT TERM
 cat "$stage/http.conf" > "$live"
-install -d -m 755 "$webroot/.well-known/acme-challenge"
+install -d -m 755 "$webroot" "$webroot/.well-known" "$webroot/.well-known/acme-challenge"
 nginx -t
 systemctl reload nginx
 token="tbl-probe-$(openssl rand -hex 12)"
