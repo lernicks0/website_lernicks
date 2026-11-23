@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ef">
+  <title>HTML 发布 · Lernicks</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <a class="identity" href="/"><b class="mark" aria-hidden="true">&lt;/&gt;</b><span>Lernicks <span class="brand">/ HTML 发布</span></span></a>
+    <a href="#projects">我的发布</a>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="title">
+      <h1 id="title">发布 HTML 页面</h1>
+      <p>上传一个网页，或把完整的静态站点变成可分享的链接。</p>
+    </section>
+
+    <form id="publish" class="card" aria-labelledby="upload-title">
+      <h2 id="upload-title">上传文件</h2>
+      <div id="dropzone" class="dropzone">
+        <span class="upload-icon" aria-hidden="true">↑</span>
+        <strong>把文件拖到这里</strong>
+        <div class="actions">
+          <button type="button" id="choose-files">选择文件</button>
+          <button type="button" id="choose-folder">选择文件夹</button>
+        </div>
+        <p class="hint">至少包含一个 HTML。最多 100 个文件，合计 20 MB。</p>
+        <input id="files" type="file" multiple hidden>
+        <input id="folder" type="file" webkitdirectory multiple hidden>
+      </div>
+
+      <div class="selection" id="selection" hidden>
+        <div class="row">
+          <span id="summary"></span>
+          <button id="clear" type="button" class="plain">清空</button>
+        </div>
+        <ul id="file-list" class="files" aria-label="待上传文件"></ul>
+      </div>
+
+      <div class="submit-row">
+        <label for="entry">入口页面
+          <select id="entry" disabled></select>
+        </label>
+        <button id="submit" class="primary" type="submit" disabled>发布并生成链接</button>
+      </div>
+      <p class="hint">默认打开 index.html。请用相对路径引用项目资源。生成的链接可公开访问。</p>
+      <p class="status" id="upload-status" role="status"></p>
+    </form>
+
+    <section id="result" class="card result" aria-labelledby="result-title" hidden>
+      <h2 id="result-title">分享与管理</h2>
+      <label for="share-url">分享链接</label>
+      <div class="link-row">
+        <input id="share-url" type="url" readonly>
+        <button id="copy-share" type="button">复制链接</button>
+      </div>
+      <div class="actions result-actions">
+        <a id="open" target="_blank" rel="noopener noreferrer">打开网页</a>
+        <button id="copy-manage" type="button" class="plain">复制私密管理链接</button>
+      </div>
+      <form id="edit" class="submit-row">
+        <label for="edit-entry">入口页面
+          <select id="edit-entry" required></select>
+        </label>
+        <button id="save-entry" type="submit" disabled>保存入口</button>
+      </form>
+      <p class="hint">换入口后，原分享链接继续可用。管理链接可用来修改入口，请自行保管。</p>
+      <p class="status" id="result-status" role="status"></p>
+    </section>
+
+    <section id="projects" class="card" aria-labelledby="projects-title">
+      <h2 id="projects-title">我的发布</h2>
+      <p id="history-empty" class="hint">此浏览器的发布记录会显示在这里。</p>
+      <ul id="history" class="history"></ul>
+    </section>
+  </main>
+</body>
+</html>
