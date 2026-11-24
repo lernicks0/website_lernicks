@@ -806,11 +806,54 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     }
     function showReader(){document.getElementById('documentShell').classList.add('show');document.getElementById('documentTitle').textContent=documentData.title;document.getElementById('formatChip').textContent=documentData.format==='html'?'HTML 网页':documentData.format==='latex'?'旧版 LaTeX':'Markdown + LaTeX + HTML';document.getElementById('documentTime').textContent='更新于 '+new Date(documentData.updatedAt).toLocaleString('zh-CN');document.getElementById('documentSize').textContent=formatBytes(documentData.size);document.getElementById('rawButton').href='/raw/'+documentId;renderDocument();document.getElementById('renderTab').onclick=renderDocument;document.getElementById('sourceTab').onclick=showSource;document.getElementById('copyButton').onclick=()=>copyText(location.href)}
     function renderDocument(){document.getElementById('renderTab').classList.add('active');document.getElementById('sourceTab').classList.remove('active');renderInto(article,documentData.content,documentData.format)}
+    const renderScripts = {
+      'html-support.js': () => !!window.MkHtml,
+      'markdown-it.min.js': () => typeof window.markdownit === 'function',
+      'purify.min.js': () => !!window.DOMPurify?.isSupported
+    };
+    const pendingRenderScripts = new Map();
+    function retryRenderScript(name) {
+      if (pendingRenderScripts.has(name)) return pendingRenderScripts.get(name);
+      const script = document.createElement('script');
+      const prefix = document.querySelector('meta[name="mk-assets"]').content;
+      script.src = prefix + name + '?retry=' + Date.now();
+      const loading = new Promise(resolve => {
+        script.onload = script.onerror = resolve;
+        document.head.appendChild(script);
+      }).finally(() => {
+        script.remove();
+        pendingRenderScripts.delete(name);
+      });
+      pendingRenderScripts.set(name, loading);
+      return loading;
+    }
     function renderInto(target, content, format) {
       target.classList.remove('html-preview');
+      const required = format === 'latex' ? [] : format === 'html' ? ['html-support.js'] : Object.keys(renderScripts);
+      const missing = required.filter(name => !renderScripts[name]());
+      if (missing.length) {
+        const status = document.createElement('p');
+        status.setAttribute('role', 'status');
+        status.textContent = '正在加载渲染组件…';
+        target.replaceChildren(status);
+        Promise.all(missing.map(retryRenderScript)).then(() => {
+          if (target.firstChild !== status) return;
+          if (missing.every(name => renderScripts[name]())) {
+            renderInto(target, content, format);
+          } else {
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'btn';
+            retry.textContent = '重试渲染';
+            retry.onclick = () => renderInto(target, content, format);
+            status.textContent = '渲染组件加载失败。 ';
+            status.appendChild(retry);
+          }
+        });
+        return;
+      }
       if (format === 'html') {
-        if (window.MkHtml) MkHtml.renderHtml(target, content);
-        else showSafePre(content, target);
+        MkHtml.renderHtml(target, content);
         return;
       }
       if (format === 'latex') target.innerHTML = renderLatexText(content);
@@ -882,12 +925,7 @@ html.astra[data-folio="note"] :is(.fb-item,.fb-card input,.fb-card textarea){col
     async function saveChanges(){const button=document.getElementById('saveButton'),content=document.getElementById('editContent').value;if(!content.trim()){toast('正文不能为空',true);return}if(byteLength(content)>MAX_BYTES){toast('文档不能超过 1MB',true);return}button.disabled=true;button.textContent='正在保存…';try{const response=await fetch('/api/documents/'+documentId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:documentKey,title:document.getElementById('editTitle').value,format:currentEditFormat,content})});const data=await response.json();if(!response.ok)throw new Error(data.message||'保存失败');documentData.title=document.getElementById('editTitle').value||'未命名文档';documentData.format=currentEditFormat;documentData.content=content;documentData.updatedAt=data.updatedAt;toast('修改已保存')}catch(error){toast(error.message,true)}finally{button.disabled=false;button.textContent='保存修改'}}
     async function deleteCurrent(){if(!confirm('确定永久删除这份文档吗？删除后阅读链接会立即失效。'))return;const button=document.getElementById('deleteButton');button.disabled=true;try{const response=await fetch('/api/documents/'+documentId,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:documentKey})});const data=await response.json();if(!response.ok)throw new Error(data.message||'删除失败');alert('文档已删除');location.replace('/')}catch(error){toast(error.message,true);button.disabled=false}}
     async function copyText(value){try{await navigator.clipboard.writeText(value)}catch(_){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}toast('链接已复制')}
-    loadDocument();
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!documentData || documentData.id !== documentId) return;
-      if (editMode && document.getElementById('editPreview').classList.contains('show')) renderEditPreview();
-      if (!editMode && documentData.format !== 'latex' && document.getElementById('renderTab').classList.contains('active')) renderDocument();
-    }, {once:true});
+    document.addEventListener('DOMContentLoaded', loadDocument, {once:true});
   </script>
 </body>
 </html>

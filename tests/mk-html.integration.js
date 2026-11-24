@@ -157,7 +157,18 @@ async function main() {
     let releaseMath;
     const waitForMath = new Promise(resolve => { releaseMath = resolve; });
     await context.route('**/katex.min.js', async route => { await waitForMath; await route.continue(); });
-    await page.goto(viewUrl, { waitUntil: 'domcontentloaded' });
+    let releaseSanitizer;
+    const waitForSanitizer = new Promise(resolve => { releaseSanitizer = resolve; });
+    await context.route('**/purify.min.js', async route => { await waitForSanitizer; await route.continue(); });
+    await page.goto(viewUrl, { waitUntil: 'commit' });
+    try {
+      await page.waitForFunction(() => typeof loadDocument === 'function');
+      await page.locator('#loading').waitFor();
+      assert.equal(await page.locator('#article pre').count(), 0);
+    } finally {
+      releaseSanitizer();
+    }
+    await context.unroute('**/purify.min.js');
     await page.locator('#article h1').waitFor();
     assert.equal(await page.locator('#article .katex').count(), 0);
     releaseMath();
@@ -201,15 +212,32 @@ async function main() {
     assert.equal(await page.locator('#article img').nth(1).getAttribute('loading'), 'lazy');
     assert.equal(await page.locator('#article img').nth(1).getAttribute('width'), '300');
     assert.ok(!plainRequests.some(url => url.includes('/katex') || url.includes('/auto-render')));
-    // A failed sanitizer load must never fall back to unsanitized innerHTML.
-    await context.route('**/purify.min.js', route => route.abort());
+    // An initial load failure is retried using the same versioned asset.
+    const sanitizerRoute = /\/purify\.min\.js(?:\?.*)?$/;
+    const failedSanitizer = route => route.abort();
+    await context.route('**/purify.min.js', failedSanitizer);
     await page.goto(viewUrl);
-    await page.locator('#article pre').waitFor();
+    await page.locator('#article h1').waitFor();
+    await page.locator('#article .katex').first().waitFor();
+    await context.unroute('**/purify.min.js', failedSanitizer);
+    // If the retry also fails, source remains available and the preview can be tried again.
+    await context.route(sanitizerRoute, failedSanitizer);
+    await page.goto(viewUrl);
+    await page.getByRole('button', { name: '重试渲染' }).waitFor();
+    assert.equal(await page.locator('#article pre').count(), 0);
     assert.equal(await page.locator('#article script,#article details').count(), 0);
     assert.equal(await page.locator('body').getAttribute('data-compromised'), null);
+    await page.locator('#sourceTab').click();
+    assert.equal(await page.locator('#article pre').textContent(), mixed + '\n\n修改后仍支持 **Markdown** 和 <mark>HTML</mark>。');
+    await page.locator('#renderTab').click();
+    await page.getByRole('button', { name: '重试渲染' }).waitFor();
+    await context.unroute(sanitizerRoute, failedSanitizer);
+    await page.getByRole('button', { name: '重试渲染' }).click();
+    await page.locator('#article h1').waitFor();
+    await page.locator('#article .katex').first().waitFor();
     assert.equal(bodyRequests, 0);
     assert.deepEqual(errors, []);
-    console.log('PASS: mixed Markdown + HTML + math in create/read/edit; details interaction; code fences; HTML-first and .htm uploads stay mixed; saved source unchanged; script filtering; sanitizer failure fallback.');
+    console.log('PASS: mixed Markdown + HTML + math in create/read/edit; details interaction; code fences; HTML-first and .htm uploads stay mixed; saved source unchanged; script filtering; slow assets and sanitizer retries.');
   }
   await api('DELETE', route, { key: created.key });
   await api('GET', route, undefined, 404);
